@@ -50,10 +50,10 @@ function doPost(e) {
   } catch (err) {
     result = { kind: 'west-ski-registration', nonce: nonce, registrationId: id, ok: false, error: String(err.message || 'Could not save registration.').slice(0, 180) };
   }
-  // The browser posts into a hidden iframe and accepts a reply only from that frame.
+  // Apps Script nests HTML Service in its own sandboxed iframe; reply to the top-level signup page.
   // No personal information is returned or placed in the payment URL.
   const encoded = Utilities.base64Encode(Utilities.newBlob(JSON.stringify(result), 'application/json').getBytes());
-  return HtmlService.createHtmlOutput('<!doctype html><html><body><script>parent.postMessage(JSON.parse(atob("' + encoded + '")),"*");<\/script></body></html>')
+  return HtmlService.createHtmlOutput('<!doctype html><html><body><script>window.top.postMessage(JSON.parse(atob("' + encoded + '")),"*");<\/script></body></html>')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 

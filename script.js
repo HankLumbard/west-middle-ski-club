@@ -85,10 +85,10 @@
       postForm.append(nonceInput);
       let timer;
       const cleanup = () => { clearTimeout(timer); window.removeEventListener('message', onMessage); iframe.remove(); postForm.remove(); };
-      const onMessage = event => {
+      // HTML Service can send from a nested Google iframe, so verify origin and the one-time nonce instead of the immediate frame.\n      const onMessage = event => {
         let host;
         try { host = new URL(event.origin).hostname; } catch { return; }
-        if (event.source !== iframe.contentWindow || !(host === 'script.google.com' || host.endsWith('.googleusercontent.com'))) return;
+        if (!(host === 'script.google.com' || host.endsWith('.googleusercontent.com'))) return;
         const msg = event.data;
         if (msg?.kind !== 'west-ski-registration' || msg.nonce !== nonce || msg.registrationId !== payload.registrationId) return;
         cleanup();
