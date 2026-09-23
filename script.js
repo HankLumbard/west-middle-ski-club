@@ -21,6 +21,7 @@
       adultWeekend: { price: 33, note: 'Weekends and holidays' }
     },
     rentalPrice: 26,
+    snowboardRentalPrice: 26,
     tubing: { included: true, sessions: 3, hours: 2, value: 60 }
   };
   let settings = defaultSettings;
@@ -70,6 +71,7 @@
         }
       },
       rentalPrice: numberOr(raw.rentalPrice, defaultSettings.rentalPrice),
+      snowboardRentalPrice: numberOr(raw.snowboardRentalPrice, defaultSettings.snowboardRentalPrice),
       tubing: {
         included: tubing.included !== false,
         sessions: numberOr(tubing.sessions, defaultSettings.tubing.sessions),
@@ -107,6 +109,7 @@
     document.querySelector('#adultWeekdayLiftPrice').textContent = formatMoney(settings.liftTickets.adultWeekday.price);
     document.querySelector('#adultWeekendLiftPrice').textContent = formatMoney(settings.liftTickets.adultWeekend.price);
     document.querySelector('#rentalPrice').textContent = formatMoney(settings.rentalPrice);
+    document.querySelector('#snowboardRentalPrice').textContent = formatMoney(settings.snowboardRentalPrice);
     document.querySelector('#tubingStatus').textContent = settings.tubing.included ? 'Included' : 'Not included';
     if (settings.tubing.included) {
       document.querySelector('#tubingDetails').textContent =
