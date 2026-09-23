@@ -19,7 +19,8 @@ const DEFAULT_SETTINGS = [
   ['Student Lift Ticket Note', 'Any day', 'When the student lift ticket price applies.'],
   ['Adult Weekday Lift Ticket Price', 28, 'Discounted adult weekday/non-holiday lift ticket price.'],
   ['Adult Weekend/Holiday Lift Ticket Price', 33, 'Discounted adult weekend/holiday lift ticket price.'],
-  ['Rental Price', 26, 'Discounted equipment rental price.'],
+  ['Rental Price', 26, 'Discounted ski rental price.'],
+  ['Snowboard Rental Price', 26, 'Discounted snowboard rental price.'],
   ['Tubing Included', true, 'Checked = tubing is included with each punch card.'],
   ['Free Tubing Sessions', 3, 'Free two-hour tubing sessions included per card.'],
   ['Tubing Session Hours', 2, 'Length of each free tubing session.'],
@@ -195,6 +196,7 @@ function getSettings_() {
       }
     },
     rentalPrice: numberSetting_(map['Rental Price'], 26),
+    snowboardRentalPrice: numberSetting_(map['Snowboard Rental Price'], 26),
     tubing: {
       included: booleanSetting_(map['Tubing Included'], true),
       sessions: numberSetting_(map['Free Tubing Sessions'], 3),
@@ -247,7 +249,7 @@ function ensureSettingsSheet_() {
   const priceKeys = new Set([
     'Student Punch Card Price', 'Adult Punch Card Price', 'Student Lift Ticket Price',
     'Adult Weekday Lift Ticket Price', 'Adult Weekend/Holiday Lift Ticket Price',
-    'Rental Price', 'Tubing Value'
+    'Rental Price', 'Snowboard Rental Price', 'Tubing Value'
   ]);
   allSettings.forEach((row, index) => {
     if (priceKeys.has(String(row[0] || '').trim())) {
