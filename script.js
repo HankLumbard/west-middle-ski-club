@@ -217,7 +217,7 @@
 
     window[callbackName] = finish;
     settingsScript.onerror = () => finish(null);
-    timer = setTimeout(() => finish(null), 8000);
+    timer = setTimeout(() => finish(null), 10000);
     settingsScript.src = scriptUrl + '?action=settings&callback=' + callbackName + '&t=' + Date.now();
     document.head.append(settingsScript);
   }
