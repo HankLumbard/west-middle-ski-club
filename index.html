@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0000a6">
+  <meta name="description" content="West Middle School Ski Club punch card registration.">
+  <title>Punch cards | West Middle School Ski Club</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="config.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="/" aria-label="West Middle School Ski Club, home">
+        <span class="brand-mark" aria-hidden="true">W</span>
+        <span class="brand-name">WEST MIDDLE SCHOOL <strong>SKI CLUB</strong></span>
+      </a>
+      <span class="header-price">PUNCH CARDS <strong>$45 EACH</strong></span>
+    </div>
+  </header>
+
+  <main class="wrap main-grid">
+    <div class="main-column">
+      <div class="intro">
+        <p class="eyebrow">TIMBER RIDGE · SKI CLUB</p>
+        <h1>Get your punch cards.</h1>
+        <p>Enter your contact information and choose who needs a card. You’ll pay by Venmo after the registration is recorded.</p>
+      </div>
+
+      <div id="setupNotice" class="notice notice-setup" hidden role="status">Online registration is being set up. Please check back soon.</div>
+      <div id="errorNotice" class="notice notice-error" hidden role="alert" tabindex="-1"></div>
+
+      <form id="signupForm" novalidate>
+        <section class="form-section" aria-labelledby="guardianHeading">
+          <div class="section-heading"><span class="section-num">01</span><div><h2 id="guardianHeading">Parent or guardian</h2><p>We’ll use this contact information for your registration.</p></div></div>
+          <div class="field-grid two">
+            <label>First name <input name="firstName" autocomplete="given-name" required maxlength="80"></label>
+            <label>Last name <input name="lastName" autocomplete="family-name" required maxlength="80"></label>
+            <label>Email <input name="email" type="email" autocomplete="email" inputmode="email" required maxlength="160"></label>
+            <label>Cell phone <input name="cell" type="tel" autocomplete="tel" inputmode="tel" required maxlength="30"></label>
+          </div>
+          <div class="field-grid address">
+            <label class="street">Street address <input name="street" autocomplete="street-address" required maxlength="160"></label>
+            <label>City <input name="city" autocomplete="address-level2" required maxlength="80"></label>
+            <label>State <input name="state" autocomplete="address-level1" required maxlength="40" value="MI"></label>
+            <label>ZIP code <input name="zip" autocomplete="postal-code" inputmode="numeric" required maxlength="15"></label>
+          </div>
+          <fieldset class="choice-fieldset" id="guardianChoice">
+            <legend>Does this parent or guardian need a punch card?</legend>
+            <div class="choice-row">
+              <label class="choice"><input type="radio" name="guardianCard" value="yes" required><span>Yes, add my card</span></label>
+              <label class="choice"><input type="radio" name="guardianCard" value="no" required><span>No, I’m purchasing for others</span></label>
+            </div>
+          </fieldset>
+        </section>
+
+        <section class="form-section" aria-labelledby="peopleHeading">
+          <div class="section-heading"><span class="section-num">02</span><div><h2 id="peopleHeading">Other cardholders</h2><p>Add students or adults. Choose Yes or No for each person’s card.</p></div></div>
+          <div id="peopleList" class="people-list"></div>
+          <button id="addPerson" class="add-button" type="button"><span aria-hidden="true">+</span> Add a person</button>
+        </section>
+
+        <section class="checkout" aria-labelledby="totalHeading">
+          <div><p class="checkout-label" id="totalHeading">Your punch cards</p><p id="cardCount" class="checkout-caption">Select who needs a card</p></div>
+          <strong id="total" class="total">$0</strong>
+          <button id="submitButton" class="submit-button" type="submit">Register & continue to payment <span aria-hidden="true">→</span></button>
+          <p class="fine-print">Registration doesn’t charge you. Your payment is completed separately in Venmo.</p>
+        </section>
+      </form>
+
+      <section id="success" class="success" hidden tabindex="-1" aria-labelledby="successHeading">
+        <span class="success-icon" aria-hidden="true">✓</span>
+        <p class="eyebrow">REGISTRATION RECORDED</p>
+        <h2 id="successHeading">You’re all set to pay.</h2>
+        <p id="successSummary"></p>
+        <div class="receipt"><span>Registration ID</span><strong id="receiptId"></strong><span>Amount due</span><strong id="receiptTotal"></strong></div>
+        <a id="venmoLink" class="submit-button payment-link" href="https://venmo.com/u/Henry-Lumbard-1" target="_blank" rel="noopener noreferrer">Pay with Venmo <span aria-hidden="true">↗</span></a>
+        <p class="payment-note">Pay <strong>@Henry-Lumbard-1</strong>. Confirm the recipient, amount, and note in Venmo before sending. Your registration shows unpaid until the organizer marks it paid.</p>
+      </section>
+    </div>
+
+    <aside class="side-column" aria-label="Punch card information">
+      <div class="info-card">
+        <div class="price-head"><span>SKI CLUB PUNCH CARD</span><strong>$45 <small>/ card</small></strong></div>
+        <div class="info-body">
+          <h2>Cardholder discounts</h2>
+          <div class="rate"><span>Student lift ticket</span><strong>$28</strong><small>Any day</small></div>
+          <div class="rate"><span>Adult lift ticket</span><strong>$28 / $33</strong><small>Weekdays and non-holidays / weekends and holidays</small></div>
+          <div class="rate"><span>Rentals</span><strong>$26</strong></div>
+          <div class="rate"><span>Tubing</span><strong>Included</strong><small>Three free 2-hour sessions per card · $60 value</small></div>
+          <p class="info-foot">The punch card includes the tubing sessions. Lift tickets and rentals are paid for separately at the discounted rates above.</p>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <template id="personTemplate">
+    <fieldset class="person-card">
+      <legend class="sr-only">Other cardholder</legend>
+      <div class="person-heading"><h3>Person <span class="person-number"></span></h3><button class="remove-button" type="button" aria-label="Remove person">Remove</button></div>
+      <div class="field-grid two">
+        <label>First name <input data-field="firstName" autocomplete="off" required maxlength="80"></label>
+        <label>Last name <input data-field="lastName" autocomplete="off" required maxlength="80"></label>
+      </div>
+      <div class="field-grid two person-options">
+        <label>Cardholder type <select data-field="type"><option value="Student">Student</option><option value="Adult">Adult</option></select></label>
+        <div class="card-choice"><span class="choice-label">Punch card?</span><div class="choice-row"><label class="choice"><input data-field="card" type="radio" value="yes" required><span>Yes</span></label><label class="choice"><input data-field="card" type="radio" value="no" required><span>No</span></label></div></div>
+      </div>
+    </fieldset>
+  </template>
+  <footer class="wrap footer">West Middle School Ski Club</footer>
+</body>
+</html>
