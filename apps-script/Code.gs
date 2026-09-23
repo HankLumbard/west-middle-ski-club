@@ -168,10 +168,21 @@ function doPost(e) {
 }
 
 function getSettings_() {
-  const sheet = ensureSettingsSheet_();
-  const values = sheet.getRange(2, 1, Math.max(0, sheet.getLastRow() - 1), 2).getValues();
+  // Keep web app reads side-effect free. initializeSettings() handles setup and repairs.
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  if (!spreadsheet) throw new Error('Attach this script to the Google Sheet first.');
+  const sheet = spreadsheet.getSheetByName(SETTINGS_SHEET_NAME);
+  if (!sheet) throw new Error('Settings tab is missing. Run initializeSettings().');
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) throw new Error('Settings tab is empty. Run initializeSettings().');
+  const rows = sheet.getRange(1, 1, lastRow, 2).getValues();
+  const headers = rows[0];
+  if (String(headers[0] || '').trim() !== 'Setting' || String(headers[1] || '').trim() !== 'Value') {
+    throw new Error('The Settings tab exists but has different headers. Contact the organizer before changing it.');
+  }
   const map = {};
-  values.forEach(row => {
+  rows.slice(1).forEach(row => {
     const key = String(row[0] || '').trim();
     if (key) map[key] = row[1];
   });
