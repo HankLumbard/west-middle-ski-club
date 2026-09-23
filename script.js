@@ -371,7 +371,7 @@
     if (window.matchMedia('(max-width: 580px)').matches) {
       success.focus({ preventScroll: true });
       requestAnimationFrame(() => {
-        document.querySelector('#venmoLink').scrollIntoView({ block: 'center', behavior: 'auto' });
+        success.scrollIntoView({ block: 'start', behavior: 'auto' });
       });
     } else {
       success.focus();
