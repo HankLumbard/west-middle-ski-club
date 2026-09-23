@@ -368,13 +368,13 @@
     document.querySelector('#receiptNote').textContent = 'West Middle Ski Club ' + displayId;
     document.querySelector('#venmoLink').href = venmoUrl(payload, displayId);
     success.hidden = false;
-    success.focus({ preventScroll: true });
     if (window.matchMedia('(max-width: 580px)').matches) {
+      success.focus({ preventScroll: true });
       requestAnimationFrame(() => {
         document.querySelector('#venmoLink').scrollIntoView({ block: 'center', behavior: 'auto' });
       });
     } else {
-      success.scrollIntoView({ block: 'start', behavior: 'auto' });
+      success.focus();
     }
     try { sessionStorage.setItem('west-ski-last-registration', JSON.stringify({ id: displayId, total: payload.total })); } catch {}
   }
