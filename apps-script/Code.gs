@@ -64,6 +64,49 @@ function initializeSettings() {
   SpreadsheetApp.flush();
 }
 
+// Run once from the Apps Script editor to create a live student punch-card goal tracker.
+// The goal input is preserved if this function is run again.
+function initializeStudentGoalTracker() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  if (!spreadsheet) throw new Error('Attach this script to the Google Sheet first.');
+
+  let sheet = spreadsheet.getSheetByName('Student Goal');
+  if (!sheet) sheet = spreadsheet.insertSheet('Student Goal');
+
+  if (!sheet.getLastRow()) {
+    sheet.getRange('A1:B1').merge();
+    sheet.getRange('A1').setValue('Student Punch Card Goal');
+    sheet.getRange('A2:B5').setValues([
+      ['Goal (student cards)', 40],
+      ['Student punch cards sold', ''],
+      ['Progress', ''],
+      ['Cards remaining', '']
+    ]);
+    sheet.getRange('B3').setFormula("=COUNTIF('Punch Cards'!M:M,\"Student\")");
+    sheet.getRange('B4').setFormula('=IFERROR(B3/B2,0)');
+    sheet.getRange('B5').setFormula('=MAX(B2-B3,0)');
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(1, 245);
+    sheet.setColumnWidth(2, 180);
+    sheet.getRange('A1:B1').setFontWeight('bold').setBackground('#0000a6').setFontColor('#ffffff');
+    sheet.getRange('A2:A5').setFontWeight('bold');
+    sheet.getRange('B4').setNumberFormat('0%');
+    sheet.getRange('B2').setBackground('#fff2cc').setNote('Enter or change the student punch-card goal here. Adult punch cards are not included.');
+    sheet.getRange('B3:B5').setBackground('#e2f0d9');
+    sheet.getRange('A7:B7').merge();
+    sheet.getRange('A7').setValue('Only rows marked Student on the Punch Cards tab count. Adult cards are excluded.');
+    sheet.getRange('A7').setWrap(true).setFontColor('#555555');
+    sheet.setRowHeight(7, 36);
+  } else {
+    const value = sheet.getRange('B2').getValue();
+    if (value === '' || value == null) sheet.getRange('B2').setValue(40);
+    sheet.getRange('B3').setFormula("=COUNTIF('Punch Cards'!M:M,\"Student\")");
+    sheet.getRange('B4').setFormula('=IFERROR(B3/B2,0)');
+    sheet.getRange('B5').setFormula('=MAX(B2-B3,0)');
+  }
+  SpreadsheetApp.flush();
+}
+
 function getPublicSettings_() {
   return getSettings_();
 }
