@@ -18,7 +18,7 @@
         <img class="brand-logo" src="assets/westmiddle.svg" alt="" width="82" height="69">
         <span class="brand-name">WEST MIDDLE SCHOOL <strong>SKI CLUB</strong></span>
       </a>
-      <span class="header-price">PUNCH CARDS <strong id="headerPrices">Student $45 · Adult $45</strong></span>
+      <span class="header-price" hidden>PUNCH CARDS <strong id="headerPrices">Student $45 · Adult $45</strong></span>
     </div>
   </header>
 
@@ -26,13 +26,13 @@
     <div class="main-column">
       <div class="intro">
         <p class="eyebrow">TIMBER RIDGE · SKI CLUB</p>
-        <h1 id="pageTitle">Registration is closed</h1>
-        <p id="pageIntro">We’re confirming final pricing and details. Please check back soon.</p>
+        <h1 id="pageTitle">Checking registration status…</h1>
+        <p id="pageIntro">Loading current registration details.</p>
       </div>
 
       <div id="setupNotice" class="notice notice-setup" hidden role="status">Online registration is being set up. Please check back soon.</div>
       <div id="errorNotice" class="notice notice-error" hidden role="alert" tabindex="-1"></div>
-      <div id="closedNotice" class="notice notice-closed" role="status">Registration is closed while final pricing and details are being confirmed.</div>
+      <div id="closedNotice" class="notice notice-closed" hidden role="status">Registration is closed while final pricing and details are being confirmed.</div>
 
       <form id="signupForm" novalidate hidden>
         <section class="form-section" aria-labelledby="guardianHeading">
