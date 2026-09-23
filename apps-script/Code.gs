@@ -36,6 +36,7 @@ function doGet(e) {
     try {
       result = { ok: true, settings: getPublicSettings_() };
     } catch (err) {
+      console.error('Settings endpoint failed:', err && err.stack ? err.stack : err);
       result = { ok: false, error: 'Registration settings are unavailable.' };
     }
   } else {
