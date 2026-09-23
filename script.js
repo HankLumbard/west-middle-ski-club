@@ -17,13 +17,13 @@
 
   function selectedCount() {
     const guardian = form.querySelector('[name="guardianCard"]:checked');
-    return (guardian?.value === 'yes' ? 1 : 0) + [...list.querySelectorAll('.person-card')].filter(card => card.querySelector('[data-field="card"]:checked')?.value === 'yes').length;
+    return (guardian?.value === 'yes' ? 1 : 0) + list.querySelectorAll('.person-card').length;
   }
 
   function updateTotal() {
     const count = selectedCount();
     document.querySelector('#total').textContent = `$${count * price}`;
-    document.querySelector('#cardCount').textContent = count ? `${count} ${count === 1 ? 'card' : 'cards'} × $${price}` : 'Select who needs a card';
+    document.querySelector('#cardCount').textContent = count ? `${count} ${count === 1 ? 'card' : 'cards'} × ${price}` : 'Add a person or select a card for the parent or guardian';
   }
 
   function renumber() {
@@ -63,7 +63,7 @@
       const firstName = card.querySelector('[data-field="firstName"]').value.trim();
       const lastName = card.querySelector('[data-field="lastName"]').value.trim();
       const type = card.querySelector('[data-field="type"]').value;
-      if (card.querySelector('[data-field="card"]:checked')?.value === 'yes') people.push({ firstName, lastName, type });
+      people.push({ firstName, lastName, type });
     }
     return { guardian, people, total: people.length * price, registrationId: crypto.randomUUID() };
   }
@@ -160,7 +160,7 @@
     if (!validEndpoint) return;
     if (!pending) {
       if (!form.reportValidity()) return;
-      if (!selectedCount()) { showError('Select Yes for at least one punch card.'); return; }
+      if (!selectedCount()) { showError('Add at least one cardholder or select a card for the parent or guardian.'); return; }
       pending = getValues();
     }
     submitButton.disabled = true;
