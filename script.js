@@ -83,22 +83,56 @@
       const nonceInput = document.createElement('input');
       nonceInput.type = 'hidden'; nonceInput.name = 'nonce'; nonceInput.value = nonce;
       postForm.append(nonceInput);
-      let timer;
-      const cleanup = () => { clearTimeout(timer); window.removeEventListener('message', onMessage); iframe.remove(); postForm.remove(); };
-      // HTML Service can send from a nested Google iframe, so verify origin and the one-time nonce instead of the immediate frame.
+      let timer, pollTimer, statusTimeout, statusScript, callbackName;
+      let settled = false;
+      const cleanupStatus = () => {
+        clearTimeout(statusTimeout);
+        if (callbackName) { delete window[callbackName]; callbackName = null; }
+        statusScript?.remove(); statusScript = null;
+      };
+      const cleanup = () => {
+        clearTimeout(timer); clearTimeout(pollTimer); cleanupStatus();
+        window.removeEventListener('message', onMessage);
+        iframe.remove(); postForm.remove();
+      };
+      const finish = (ok, value) => {
+        if (settled) return;
+        settled = true; cleanup();
+        if (ok) resolve(value); else reject(value);
+      };
+      const schedulePoll = () => {
+        cleanupStatus();
+        if (!settled) pollTimer = setTimeout(pollForSave, 1800);
+      };
+      const pollForSave = () => {
+        if (settled) return;
+        callbackName = `skiStatus_${crypto.randomUUID().replaceAll('-', '')}`;
+        const name = callbackName;
+        statusScript = document.createElement('script');
+        window[name] = response => {
+          if (response?.registrationId === payload.registrationId && response.ok === true) {
+            finish(true, response);
+          } else schedulePoll();
+        };
+        statusScript.onerror = schedulePoll;
+        statusTimeout = setTimeout(schedulePoll, 7000);
+        statusScript.src = `${scriptUrl}?action=status&id=${encodeURIComponent(payload.registrationId)}&callback=${name}&t=${Date.now()}`;
+        document.head.append(statusScript);
+      };
       const onMessage = event => {
         let host;
         try { host = new URL(event.origin).hostname; } catch { return; }
         if (!(host === 'script.google.com' || host.endsWith('.googleusercontent.com'))) return;
         const msg = event.data;
         if (msg?.kind !== 'west-ski-registration' || msg.nonce !== nonce || msg.registrationId !== payload.registrationId) return;
-        cleanup();
-        if (msg.ok) resolve(msg); else { const failure = new Error(msg.error || 'The registration could not be saved.'); failure.confirmed = true; reject(failure); }
+        if (msg.ok) finish(true, msg);
+        else { const failure = new Error(msg.error || 'The registration could not be saved.'); failure.confirmed = true; finish(false, failure); }
       };
       document.body.append(iframe, postForm);
       window.addEventListener('message', onMessage);
-      timer = setTimeout(() => { cleanup(); reject(new Error('We could not confirm the registration. Please retry the same registration, or contact the organizer before paying.')); }, 40000);
+      timer = setTimeout(() => finish(false, new Error('We could not confirm the registration. Please retry the same registration, or contact the organizer before paying.')), 40000);
       postForm.submit();
+      pollTimer = setTimeout(pollForSave, 1300);
     });
   }
 

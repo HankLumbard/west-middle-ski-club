@@ -12,6 +12,29 @@ const HEADERS = [
   'Card Price', 'Registration Total', 'Paid', 'Payment Notes'
 ];
 
+function doGet(e) {
+  const params = e && e.parameter || {};
+  const id = String(params.id || '');
+  let found = false;
+  if (params.action === 'status' && /^[a-f0-9-]{36}$/i.test(id)) {
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = spreadsheet && spreadsheet.getSheetByName(SHEET_NAME);
+    if (sheet && sheet.getLastRow() > 1) {
+      found = !!sheet.getRange(2, 2, sheet.getLastRow() - 1, 1)
+        .createTextFinder(id).matchEntireCell(true).findNext();
+    }
+  }
+  // A public status check reveals only whether an unguessable registration ID exists.
+  const result = JSON.stringify({ ok: found, registrationId: id });
+  const callback = String(params.callback || '');
+  if (callback && /^[A-Za-z_$][A-Za-z0-9_$]{0,80}$/.test(callback)) {
+    return ContentService.createTextOutput(callback + '(' + result + ');')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(result)
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
 function doPost(e) {
   const nonce = String(e && e.parameter && e.parameter.nonce || '').replace(/[^A-Za-z0-9-]/g, '').slice(0, 80);
   let id = '';
