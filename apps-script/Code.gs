@@ -20,7 +20,7 @@ const DEFAULT_SETTINGS = [
   ['Adult Weekday Lift Ticket Price', 28, 'Discounted adult weekday/non-holiday lift ticket price.'],
   ['Adult Weekend/Holiday Lift Ticket Price', 33, 'Discounted adult weekend/holiday lift ticket price.'],
   ['Rental Price', 26, 'Discounted ski rental price.'],
-  ['Snowboard Rental Price', 26, 'Discounted snowboard rental price.'],
+  ['Snowboard Rental Price', 30, 'Discounted snowboard rental price.'],
   ['Tubing Included', true, 'Checked = tubing is included with each punch card.'],
   ['Free Tubing Sessions', 3, 'Free two-hour tubing sessions included per card.'],
   ['Tubing Session Hours', 2, 'Length of each free tubing session.'],
