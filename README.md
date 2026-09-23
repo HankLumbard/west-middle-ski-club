@@ -1,28 +1,28 @@
 # West Middle School Ski Club signup
 
-Static signup website plus a Google Sheets Apps Script backend for punch-card purchases. The site collects guardian contact information and an explicit Yes/No card choice for the guardian and each additional person. Only selected cardholders are saved: one row per card, $45 per row. A unique four-character code groups a family purchase. A hidden Submission Key keeps retries safe even when a short code collides. Each card includes three free two-hour tubing sessions ($60 value); lift tickets and rentals are paid for separately at the cardholder rates shown.
+Static signup website plus a Google Sheets Apps Script backend for punch-card registrations. The website reads prices and registration status from the Sheet's **Settings** tab. Student and adult punch-card prices can differ; lift tickets, rentals, and tubing details can be edited there. Registration starts closed, and the server also rejects new registrations while closed. Existing registrations can still be safely confirmed if a response was delayed.
 
-## Set up the sheet
+## Set up the Google Sheet
 
-1. Create a new private Google Sheet in the organizer's account. Do not give families access to it.
-2. Open **Extensions → Apps Script**. Replace the starter code with `apps-script/Code.gs` and save.
-3. In Apps Script choose **Deploy → New deployment → Web app**. Set **Execute as: Me** and **Who has access: Anyone**. Authorize it and copy the URL ending in `/exec`.
-4. Paste that URL into `config.js` as `scriptUrl`. Keep the quotes around it. The public form stays disabled until this is set.
-5. In GitHub, publish this repository with **Settings → Pages → Deploy from a branch → main → /(root)**. The website files are at the repository root. Each Apps Script code change requires a new Web app version under **Manage deployments → Edit → New version**.
+1. Open the private Google Sheet used for registrations, then choose **Extensions → Apps Script**.
+2. Replace the contents of `Code.gs` with [`apps-script/Code.gs`](apps-script/Code.gs) and save.
+3. In the function list, choose `initializeSettings` and click **Run**. Approve the requested Google permissions. This creates the **Settings** tab; its **Registration Open** checkbox starts unchecked.
+4. Update the Apps Script deployment: **Deploy → Manage deployments → Edit → New version → Deploy**. Keep the existing Web app URL and settings (**Execute as: Me**, **Who has access: Anyone**).
+5. Visit the website. It remains closed until you check **Registration Open** in the Settings tab. Change values in the **Value** column as needed, then have families reload the page to see the latest settings. Uncheck the box at any time to close registration.
 
-The first submission creates the **Punch Cards** tab and its columns. `Paid` starts unchecked; check the box for each cardholder row after you confirm the Venmo payment. Use the shared Registration ID and Payment Notes column to reconcile a family payment. Google Sheets can export this tab to CSV or Excel. Do not overwrite the header row.
+The website is configured with the deployed `/exec` URL in `config.js`. If that URL changes, update `config.js` and publish the changed file to GitHub Pages. The public site displays the prices from Settings and uses the card prices to calculate the Venmo total. The Apps Script validates totals against the current Sheet prices when it saves a registration.
+
+## Registration data
+
+The first registration creates the **Punch Cards** tab and its columns. There is one row per student or adult cardholder. A guardian is included as an adult only when they select that they need a card; other cardholders are added automatically. `Paid` starts unchecked; check the box for each cardholder after confirming the Venmo payment. A shared four-character Registration ID groups a family purchase. The hidden Submission Key keeps retries safe. Do not overwrite the header row.
 
 ## Payment flow
 
 The form sends a registration to the script, waits for a positive acknowledgment, then shows the total and Venmo link for `@Henry-Lumbard-1`. The payment note includes the four-character code. Families must verify the recipient, amount, and note in Venmo. The link attempts to prefill the amount and note; Venmo's app/browser behavior can vary. Payments are not detected automatically; mark `Paid` in the sheet after confirming receipt.
 
-If a request times out, **Retry registration** reuses the same internal submission key. The script checks that key before writing rows, so a delayed response does not create a second purchase. A new visit starts a new registration. The user should contact the organizer before paying if the site cannot confirm the save.
-
-## Logo and copy
-
-The original school logo asset was not available in this project. The header uses a simple W wordmark in the agreed blue (`#0000A6`), red (`#D30909`), and white. To use the real logo, add it to `assets/` and replace the `.brand-mark` element in `index.html` with an `<img>` carrying meaningful alt text. Review the lift/rental rates and tubing inclusion wording against Timber Ridge's offer before sharing the form.
+If a request times out, retrying reuses the same internal submission key. The script checks that key before writing rows, so a delayed response does not create a second purchase. A new visit starts a new registration. Families should contact the organizer before paying if the site cannot confirm the save.
 
 ## Files
 
-- `index.html`, `styles-99f7c29.css`, `script.js`, `config.js`, `assets/favicon.svg`: complete frontend
-- `apps-script/Code.gs`: server-side validation and Google Sheet writing
+- `index.html`, `styles-registration-settings.css`, `script.js`, `config.js`, and `assets/`: complete frontend
+- `apps-script/Code.gs`: settings management, server-side validation, and Google Sheet writing
