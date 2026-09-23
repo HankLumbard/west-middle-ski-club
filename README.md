@@ -24,5 +24,5 @@ The original school logo asset was not available in this project. The header use
 
 ## Files
 
-- `index.html`, `styles.css`, `script.js`, `config.js`, `assets/favicon.svg`: complete frontend
+- `index.html`, `styles-99f7c29.css`, `script.js`, `config.js`, `assets/favicon.svg`: complete frontend
 - `apps-script/Code.gs`: server-side validation and Google Sheet writing
