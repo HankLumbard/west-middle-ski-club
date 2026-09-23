@@ -1,6 +1,6 @@
 # West Middle School Ski Club signup
 
-Static signup website plus a Google Sheets Apps Script backend for punch-card purchases. The site collects guardian contact information and an explicit Yes/No card choice for the guardian and each additional person. Only selected cardholders are saved: one row per card, $45 per row. A registration ID groups a family purchase. Each card includes three free two-hour tubing sessions ($60 value); lift tickets and rentals are paid for separately at the cardholder rates shown.
+Static signup website plus a Google Sheets Apps Script backend for punch-card purchases. The site collects guardian contact information and an explicit Yes/No card choice for the guardian and each additional person. Only selected cardholders are saved: one row per card, $45 per row. A unique four-character code groups a family purchase. A hidden Submission Key keeps retries safe even when a short code collides. Each card includes three free two-hour tubing sessions ($60 value); lift tickets and rentals are paid for separately at the cardholder rates shown.
 
 ## Set up the sheet
 
@@ -14,9 +14,9 @@ The first submission creates the **Punch Cards** tab and its columns. `Paid` sta
 
 ## Payment flow
 
-The form sends a registration to the script, waits for a positive acknowledgment, then shows the total and Venmo link for `@Henry-Lumbard-1`. The payment note includes only the registration ID. Families must verify the recipient, amount, and note in Venmo. The link attempts to prefill the amount and note; Venmo's app/browser behavior can vary. Payments are not detected automatically; mark `Paid` in the sheet after confirming receipt.
+The form sends a registration to the script, waits for a positive acknowledgment, then shows the total and Venmo link for `@Henry-Lumbard-1`. The payment note includes the four-character code. Families must verify the recipient, amount, and note in Venmo. The link attempts to prefill the amount and note; Venmo's app/browser behavior can vary. Payments are not detected automatically; mark `Paid` in the sheet after confirming receipt.
 
-If a request times out, **Retry registration** reuses the same ID. The script checks that ID before writing rows, so a delayed response does not create a second purchase. A new visit starts a new registration. The user should contact the organizer before paying if the site cannot confirm the save.
+If a request times out, **Retry registration** reuses the same internal submission key. The script checks that key before writing rows, so a delayed response does not create a second purchase. A new visit starts a new registration. The user should contact the organizer before paying if the site cannot confirm the save.
 
 ## Logo and copy
 
@@ -24,5 +24,5 @@ The original school logo asset was not available in this project. The header use
 
 ## Files
 
-- `dist/index.html`, `dist/styles.css`, `dist/script.js`, `config.js`, `dist/assets/favicon.svg`: complete frontend
+- `index.html`, `styles.css`, `script.js`, `config.js`, `assets/favicon.svg`: complete frontend
 - `apps-script/Code.gs`: server-side validation and Google Sheet writing

@@ -9,23 +9,20 @@ const HEADERS = [
   'Submitted At', 'Registration ID', 'Guardian First Name', 'Guardian Last Name',
   'Email', 'Cell', 'Street Address', 'City', 'State', 'ZIP',
   'Cardholder First Name', 'Cardholder Last Name', 'Cardholder Type',
-  'Card Price', 'Registration Total', 'Paid', 'Payment Notes'
+  'Card Price', 'Registration Total', 'Paid', 'Payment Notes', 'Submission Key'
 ];
 
 function doGet(e) {
   const params = e && e.parameter || {};
   const id = String(params.id || '');
-  let found = false;
+  let match = null;
   if (params.action === 'status' && /^[a-f0-9-]{36}$/i.test(id)) {
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = spreadsheet && spreadsheet.getSheetByName(SHEET_NAME);
-    if (sheet && sheet.getLastRow() > 1) {
-      found = !!sheet.getRange(2, 2, sheet.getLastRow() - 1, 1)
-        .createTextFinder(id).matchEntireCell(true).findNext();
-    }
+    if (sheet) match = findRegistration_(sheet, id);
   }
-  // A public status check reveals only whether an unguessable registration ID exists.
-  const result = JSON.stringify({ ok: found, registrationId: id });
+  // Only an unguessable internal ID can retrieve the short display code.
+  const result = JSON.stringify({ ok: !!match, registrationId: id, displayId: match ? match.displayId : null });
   const callback = String(params.callback || '');
   if (callback && /^[A-Za-z_$][A-Za-z0-9_$]{0,80}$/.test(callback)) {
     return ContentService.createTextOutput(callback + '(' + result + ');')
@@ -47,27 +44,24 @@ function doPost(e) {
     if (!lock.tryLock(20000)) throw new Error('The registration system is busy. Please retry.');
     try {
       const sheet = getSheet_();
-      const last = sheet.getLastRow();
-      if (last > 1) {
-        const prior = sheet.getRange(2, 2, last - 1, 1).createTextFinder(id).matchEntireCell(true).findNext();
-        if (prior) {
-          result = { kind: 'west-ski-registration', nonce: nonce, registrationId: id, ok: true, duplicate: true };
-        }
-      }
-      if (!result) {
+      const prior = findRegistration_(sheet, id);
+      if (prior) {
+        result = { kind: 'west-ski-registration', nonce: nonce, registrationId: id, displayId: prior.displayId, ok: true, duplicate: true };
+      } else {
+        const code = newCode_(sheet);
         const g = payload.guardian;
         const now = new Date();
         const total = payload.people.length * CARD_PRICE;
         const rows = payload.people.map(p => [
-          now, safe_(id), safe_(g.firstName), safe_(g.lastName), safe_(g.email), safe_(g.cell),
+          now, code, safe_(g.firstName), safe_(g.lastName), safe_(g.email), safe_(g.cell),
           safe_(g.street), safe_(g.city), safe_(g.state), safe_(g.zip),
-          safe_(p.firstName), safe_(p.lastName), safe_(p.type), CARD_PRICE, total, false, ''
+          safe_(p.firstName), safe_(p.lastName), safe_(p.type), CARD_PRICE, total, false, '', id
         ]);
         const nextRow = sheet.getLastRow() + 1;
         sheet.getRange(nextRow, 1, rows.length, HEADERS.length).setValues(rows);
         sheet.getRange(nextRow, 16, rows.length, 1).insertCheckboxes();
         SpreadsheetApp.flush();
-        result = { kind: 'west-ski-registration', nonce: nonce, registrationId: id, ok: true };
+        result = { kind: 'west-ski-registration', nonce: nonce, registrationId: id, displayId: code, ok: true };
       }
     } finally { lock.releaseLock(); }
   } catch (err) {
@@ -84,15 +78,42 @@ function getSheet_() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   if (!spreadsheet) throw new Error('Attach this script to the Google Sheet first.');
   let sheet = spreadsheet.getSheetByName(SHEET_NAME);
-  if (!sheet) {
-    sheet = spreadsheet.insertSheet(SHEET_NAME);
-  }
+  if (!sheet) sheet = spreadsheet.insertSheet(SHEET_NAME);
   if (!sheet.getLastRow()) {
     sheet.appendRow(HEADERS);
     sheet.setFrozenRows(1);
     sheet.getRange(1, 1, 1, HEADERS.length).setFontWeight('bold').setBackground('#0000a6').setFontColor('#ffffff');
+    sheet.hideColumns(18);
+  } else {
+    const internalHeader = sheet.getRange(1, 18).getValue();
+    if (internalHeader && internalHeader !== 'Submission Key') throw new Error('Column R is already in use. Contact the organizer.');
+    if (!internalHeader) {
+      sheet.getRange(1, 18).setValue('Submission Key').setFontWeight('bold').setBackground('#0000a6').setFontColor('#ffffff');
+      sheet.hideColumns(18);
+    }
   }
   return sheet;
+}
+
+function findRegistration_(sheet, id) {
+  const last = sheet.getLastRow();
+  if (last < 2) return null;
+  const internal = sheet.getRange(2, 18, last - 1, 1).createTextFinder(id).matchEntireCell(true).findNext();
+  if (internal) return { displayId: String(sheet.getRange(internal.getRow(), 2).getValue()) };
+  // Registrations from before short codes used the UUID in column B.
+  const legacy = sheet.getRange(2, 2, last - 1, 1).createTextFinder(id).matchEntireCell(true).findNext();
+  return legacy ? { displayId: id } : null;
+}
+
+function newCode_(sheet) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  for (let attempt = 0; attempt < 50; attempt++) {
+    let code = '';
+    for (let i = 0; i < 4; i++) code += alphabet[Math.floor(Math.random() * alphabet.length)];
+    const last = sheet.getLastRow();
+    if (last < 2 || !sheet.getRange(2, 2, last - 1, 1).createTextFinder(code).matchEntireCell(true).findNext()) return code;
+  }
+  throw new Error('Could not allocate a registration code. Please retry.');
 }
 
 function validate_(p) {

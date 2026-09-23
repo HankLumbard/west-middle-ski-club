@@ -136,22 +136,23 @@
     });
   }
 
-  function venmoUrl(payload) {
-    const note = `West Middle Ski Club ${payload.registrationId}`;
+  function venmoUrl(payload, displayId) {
+    const note = `West Middle Ski Club ${displayId}`;
     const recipient = encodeURIComponent(cfg.venmoUsername || 'Henry-Lumbard-1');
     return `https://venmo.com/u/${recipient}?txn=pay&amount=${payload.total.toFixed(2)}&note=${encodeURIComponent(note)}`;
   }
 
-  function showSuccess(payload) {
+  function showSuccess(payload, confirmation) {
+    const displayId = confirmation?.displayId || payload.registrationId;
     form.hidden = true; clearError();
     const success = document.querySelector('#success');
     document.querySelector('#successSummary').textContent = `${payload.people.length} ${payload.people.length === 1 ? 'punch card' : 'punch cards'} registered for ${payload.guardian.firstName} ${payload.guardian.lastName}.`;
-    document.querySelector('#receiptId').textContent = payload.registrationId;
+    document.querySelector('#receiptId').textContent = displayId;
     document.querySelector('#receiptTotal').textContent = `${payload.total.toFixed(2)}`;
-    document.querySelector('#receiptNote').textContent = `West Middle Ski Club ${payload.registrationId}`;
-    document.querySelector('#venmoLink').href = venmoUrl(payload);
+    document.querySelector('#receiptNote').textContent = `West Middle Ski Club ${displayId}`;
+    document.querySelector('#venmoLink').href = venmoUrl(payload, displayId);
     success.hidden = false; success.focus();
-    try { sessionStorage.setItem('west-ski-last-registration', JSON.stringify({ id: payload.registrationId, total: payload.total })); } catch {}
+    try { sessionStorage.setItem('west-ski-last-registration', JSON.stringify({ id: displayId, total: payload.total })); } catch {}
   }
 
   form.addEventListener('submit', async event => {
@@ -164,13 +165,13 @@
     }
     submitButton.disabled = true;
     submitButton.firstChild.textContent = 'Saving registration… ';
-    try { await postRegistration(pending); showSuccess(pending); pending = null; }
+    try { const confirmation = await postRegistration(pending); showSuccess(pending, confirmation); pending = null; }
     catch (err) {
       if (err.confirmed) {
         pending = null;
         showError(`${err.message} Please correct the form and try again.`);
       } else {
-        showError(`${err.message} Your registration ID is ${pending.registrationId}. Retrying will use the same ID to prevent a duplicate.`);
+        showError(`${err.message} Retrying will use the same submission to prevent a duplicate.`);
         form.querySelectorAll('input,select,button').forEach(el => { if (el !== submitButton) el.disabled = true; });
       }
       submitButton.disabled = false;
