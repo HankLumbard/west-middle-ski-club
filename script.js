@@ -21,7 +21,7 @@
       adultWeekend: { price: 33, note: 'Weekends and holidays' }
     },
     rentalPrice: 26,
-    snowboardRentalPrice: 26,
+    snowboardRentalPrice: 30,
     tubing: { included: true, sessions: 3, hours: 2, value: 60 }
   };
   let settings = defaultSettings;
