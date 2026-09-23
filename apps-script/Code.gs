@@ -69,6 +69,7 @@ function initializeSettings() {
 function initializeStudentGoalTracker() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   if (!spreadsheet) throw new Error('Attach this script to the Google Sheet first.');
+  getSheet_(); // Ensure the source tab exists before installing formulas that reference it.
 
   let sheet = spreadsheet.getSheetByName('Student Goal');
   if (!sheet) sheet = spreadsheet.insertSheet('Student Goal');
