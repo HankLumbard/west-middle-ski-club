@@ -7,6 +7,7 @@
   const error = document.querySelector('#errorNotice');
   const setup = document.querySelector('#setupNotice');
   const closedNotice = document.querySelector('#closedNotice');
+  const pricingPanel = document.querySelector('.side-column');
   const submitButton = document.querySelector('#submitButton');
   const scriptUrl = String(cfg.scriptUrl || '').trim();
   const validEndpoint = /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(scriptUrl);
@@ -82,6 +83,7 @@
     const pageTitle = document.querySelector('#pageTitle');
     const pageIntro = document.querySelector('#pageIntro');
     form.hidden = !isOpen;
+    pricingPanel.hidden = !isOpen;
     closedNotice.hidden = isOpen;
     submitButton.disabled = !validEndpoint || !isOpen;
     if (isOpen) {
