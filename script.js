@@ -84,6 +84,7 @@
     const pageIntro = document.querySelector('#pageIntro');
     form.hidden = !isOpen;
     pricingPanel.hidden = !isOpen;
+    document.querySelector('.header-price').hidden = !isOpen;
     closedNotice.hidden = isOpen;
     submitButton.disabled = !validEndpoint || !isOpen;
     if (isOpen) {
@@ -414,6 +415,5 @@
 
   updatePricingDisplay();
   updateTotal();
-  setRegistrationStatus(false, defaultSettings.closedMessage);
   fetchSettings();
 })();
