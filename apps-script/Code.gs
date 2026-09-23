@@ -64,6 +64,10 @@ function initializeSettings() {
   SpreadsheetApp.flush();
 }
 
+function getPublicSettings_() {
+  return getSettings_();
+}
+
 function doPost(e) {
   const nonce = String(e && e.parameter && e.parameter.nonce || '').replace(/[^A-Za-z0-9-]/g, '').slice(0, 80);
   let id = '';
