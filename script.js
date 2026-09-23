@@ -147,7 +147,8 @@
     const success = document.querySelector('#success');
     document.querySelector('#successSummary').textContent = `${payload.people.length} ${payload.people.length === 1 ? 'punch card' : 'punch cards'} registered for ${payload.guardian.firstName} ${payload.guardian.lastName}.`;
     document.querySelector('#receiptId').textContent = payload.registrationId;
-    document.querySelector('#receiptTotal').textContent = `$${payload.total.toFixed(2)}`;
+    document.querySelector('#receiptTotal').textContent = `${payload.total.toFixed(2)}`;
+    document.querySelector('#receiptNote').textContent = `West Middle Ski Club ${payload.registrationId}`;
     document.querySelector('#venmoLink').href = venmoUrl(payload);
     success.hidden = false; success.focus();
     try { sessionStorage.setItem('west-ski-last-registration', JSON.stringify({ id: payload.registrationId, total: payload.total })); } catch {}
@@ -174,6 +175,16 @@
       }
       submitButton.disabled = false;
       submitButton.firstChild.textContent = pending ? 'Retry registration ' : 'Register & continue to payment ';
+    }
+  });
+  document.querySelector('#copyNote').addEventListener('click', async event => {
+    const button = event.currentTarget;
+    const note = document.querySelector('#receiptNote').textContent;
+    try {
+      await navigator.clipboard.writeText(note);
+      button.textContent = 'Note copied';
+    } catch {
+      button.textContent = 'Select the note above to copy';
     }
   });
   updateTotal();
