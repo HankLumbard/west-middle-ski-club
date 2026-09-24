@@ -182,7 +182,7 @@
     error.textContent = '';
   }
 
-  function fetchSettings() {
+  function fetchSettings(attempt = 0) {
     if (!validEndpoint) {
       setup.hidden = false;
       setup.textContent = 'The registration settings are not connected. Signups remain closed.';
@@ -208,6 +208,8 @@
         updatePricingDisplay();
         updateTotal();
         setRegistrationStatus(settings.registrationOpen, settings.closedMessage);
+      } else if (attempt < 1) {
+        fetchSettings(attempt + 1);
       } else {
         setup.hidden = false;
         setup.textContent = 'Update the Apps Script to load the Settings tab. Signups remain closed until then.';
@@ -217,7 +219,7 @@
 
     window[callbackName] = finish;
     settingsScript.onerror = () => finish(null);
-    timer = setTimeout(() => finish(null), 10000);
+    timer = setTimeout(() => finish(null), 30000);
     settingsScript.src = scriptUrl + '?action=settings&callback=' + callbackName + '&t=' + Date.now();
     document.head.append(settingsScript);
   }
