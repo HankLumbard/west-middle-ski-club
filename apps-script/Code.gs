@@ -509,6 +509,27 @@ function safe_(value) {
   return /^[=+\-@\t\r]/.test(text) ? "'" + text : text;
 }
 
+// Run from the editor to authorize and check the Cloudflare connection.
+// An intentionally invalid token checks configuration without creating an entry.
+function checkTurnstileConnection() {
+  const secret = PropertiesService.getScriptProperties().getProperty('TURNSTILE_SECRET_KEY');
+  if (!secret) throw new Error('Save TURNSTILE_SECRET_KEY in this project first.');
+  const response = UrlFetchApp.fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    method: 'post', payload: { secret: secret, response: 'configuration-check-invalid-token' },
+    muteHttpExceptions: true
+  });
+  const result = JSON.parse(response.getContentText());
+  const errors = Array.isArray(result['error-codes']) ? result['error-codes'] : [];
+  if (response.getResponseCode() !== 200 || errors.includes('invalid-input-secret') ||
+      errors.includes('missing-input-secret') || errors.includes('internal-error')) {
+    throw new Error('Cloudflare connection or secret-key configuration needs attention.');
+  }
+  if (!errors.includes('invalid-input-response') && !errors.includes('timeout-or-duplicate')) {
+    throw new Error('Cloudflare returned an unexpected configuration-check response.');
+  }
+  console.log('Cloudflare connection and secret key verified. No registration or email was created.');
+}
+
 function verifyTurnstile_(token) {
   if (typeof token !== 'string' || !token || token.length > 2048) {
     throw new Error('Complete the security verification before registering.');
