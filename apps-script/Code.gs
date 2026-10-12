@@ -165,12 +165,13 @@ function doPost(e) {
           now, code, safe_(g.firstName), safe_(g.lastName), safe_(g.email), safe_(g.cell),
           safe_(g.street), safe_(g.city), safe_(g.state), safe_(g.zip),
           safe_(person.firstName), safe_(person.lastName), safe_(person.type),
-          settings.cardPrices[person.type], index === 0 ? total : '', false, '', id,
+          settings.cardPrices[person.type], index === 0 ? total : '', index === 0 ? false : '', '', id,
           ...(receiptsEnabled ? [index === 0 ? 'Pending' : '', '', ''] : [])
         ]);
         const nextRow = sheet.getLastRow() + 1;
         sheet.getRange(nextRow, 1, rows.length, rows[0].length).setValues(rows);
-        sheet.getRange(nextRow, 16, rows.length, 1).insertCheckboxes();
+        sheet.getRange(nextRow, 16, rows.length, 1).clearDataValidations();
+        sheet.getRange(nextRow, 16).insertCheckboxes();
         SpreadsheetApp.flush();
         result = { kind: 'west-ski-registration', nonce: nonce, registrationId: id, displayId: code, ok: true };
       }
@@ -469,7 +470,28 @@ function getSheet_() {
       sheet.hideColumns(18);
     }
   }
+  ensureRegistrationGroupShading_(sheet);
   return sheet;
+}
+
+// Each registration alternates light blue/white, rather than each cardholder row.
+// The ID-based rules keep a registration's color consistent when rows are sorted.
+function ensureRegistrationGroupShading_(sheet) {
+  const formulas = [
+    '=AND($B2<>"",ISODD(MATCH($B2,UNIQUE($B$2:$B),0)))',
+    '=AND($B2<>"",ISEVEN(MATCH($B2,UNIQUE($B$2:$B),0)))'
+  ];
+  const colors = ['#e8f0fe', '#ffffff'];
+  const range = sheet.getRange(2, 1, sheet.getMaxRows() - 1,
+    Math.max(HEADERS.length, sheet.getLastColumn()));
+  const existing = sheet.getConditionalFormatRules();
+  const kept = existing.filter(rule => {
+    const condition = rule.getBooleanCondition();
+    return !condition || !formulas.includes(String(condition.getCriteriaValues()[0]));
+  });
+  const bands = formulas.map((formula, index) => SpreadsheetApp.newConditionalFormatRule()
+    .whenFormulaSatisfied(formula).setBackground(colors[index]).setRanges([range]).build());
+  sheet.setConditionalFormatRules(bands.concat(kept));
 }
 
 function findRegistration_(sheet, id) {
