@@ -175,7 +175,7 @@
       'Regularly ' + formatMoney(settings.tubing.regularPrice) + ' per session';
     document.querySelector('#studentLessonPrice').textContent = formatMoney(settings.studentLesson.price);
     document.querySelector('#studentLessonRegularPrice').textContent =
-      'Regularly ' + formatMoney(settings.studentLesson.regularPrice);
+      'Regularly ' + formatMoney(settings.studentLesson.regularPrice) + ' each';
     document.querySelector('#discountFoot').textContent =
       'Lift tickets, rentals, tubing, and lessons are paid for separately at the rates shown.';
   }

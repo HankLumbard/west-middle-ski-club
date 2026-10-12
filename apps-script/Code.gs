@@ -28,7 +28,7 @@ const DEFAULT_SETTINGS = [
   ['Tubing Regular Price', 28, 'Regular price per tubing session.'],
   ['Tubing Sessions', 3, 'Number of discounted tubing sessions available per card.'],
   ['Tubing Session Hours', 2, 'Length of each tubing session.'],
-  ['Student Introductory Ski Lesson Price', 10, 'One introductory ski lesson per student card, paid separately.'],
+  ['Student Introductory Ski Lesson Price', 10, 'Two introductory ski lessons per student card at this price each, paid separately.'],
   ['Student Introductory Ski Lesson Regular Price', 40, 'Regular introductory ski lesson price.'],
   ['Closed Message', 'Registration is closed while final pricing and details are being confirmed.', 'Message shown on the website while registration is closed.']
 ];

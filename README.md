@@ -14,7 +14,7 @@ The website is configured with the deployed `/exec` URL in `config.js`. If that 
 
 ## October 2026 cardholder pricing
 
-Tubing offers three two-hour sessions per card at **$20 per session**, regularly $28. Student cards also offer **one introductory ski lesson for $10**, regularly $40. Snowboard rental is **$40**, regularly $40. These are informational benefits paid separately; registration collects punch-card payments only.
+Tubing offers three two-hour sessions per card at **$20 per session**, regularly $28. Student cards also offer **two introductory ski lessons per card for $10 each**, regularly $40 each. Snowboard rental is **$40**, regularly $40. These are informational benefits paid separately; registration collects punch-card payments only.
 
 Replace the bound Apps Script with the current `apps-script/Code.gs`, save, run **updateCardholderPricing** once, then update the existing deployment to a new version. This adds the tubing and lesson price settings and sets snowboard rental to $40, preserving registration status, punch-card prices, and registrations. Old Tubing Included, Free Tubing Sessions, and Tubing Value rows remain labeled as unused. Until the new script is deployed, the frontend displays the confirmed benefit prices instead of the old free-tubing/$30 snowboard information.
 
