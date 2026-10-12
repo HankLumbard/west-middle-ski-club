@@ -18,7 +18,7 @@ To add the **Student Goal** tab to the registration sheet, update the Apps Scrip
 
 ## Registration data
 
-The first registration creates the **Punch Cards** tab and its columns. There is one row per student or adult cardholder. A guardian is included as an adult only when they select that they need a card; other cardholders are added automatically. `Paid` starts unchecked; check the box for each cardholder after confirming the Venmo payment. A shared four-character Registration ID groups a family purchase. The hidden Submission Key keeps retries safe. Do not overwrite the header row.
+The first registration creates the **Punch Cards** tab and its columns. There is one row per student or adult cardholder. A guardian is included as an adult only when they select that they need a card; other cardholders are added automatically. **Registration Total** appears only on the first row of each registration (the guardian's card row when purchased, otherwise the first cardholder row with the guardian's contact information); remaining rows are blank in that column so it can be summed without double-counting. `Paid` starts unchecked; check the box for each cardholder after confirming the Venmo payment. A shared four-character Registration ID groups a family purchase. The hidden Submission Key keeps retries safe. Do not overwrite the header row.
 
 ## Payment flow
 

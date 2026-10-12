@@ -143,11 +143,13 @@ function doPost(e) {
         const g = payload.guardian;
         const now = new Date();
         const total = money_(payload.people.reduce((sum, person) => sum + settings.cardPrices[person.type], 0));
-        const rows = payload.people.map(person => [
+        // The guardian's card is first when purchased; otherwise the first child's
+        // row carries the guardian contact information and registration total.
+        const rows = payload.people.map((person, index) => [
           now, code, safe_(g.firstName), safe_(g.lastName), safe_(g.email), safe_(g.cell),
           safe_(g.street), safe_(g.city), safe_(g.state), safe_(g.zip),
           safe_(person.firstName), safe_(person.lastName), safe_(person.type),
-          settings.cardPrices[person.type], total, false, '', id
+          settings.cardPrices[person.type], index === 0 ? total : '', false, '', id
         ]);
         const nextRow = sheet.getLastRow() + 1;
         sheet.getRange(nextRow, 1, rows.length, HEADERS.length).setValues(rows);
