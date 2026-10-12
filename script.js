@@ -48,6 +48,7 @@
     script.async = true;
     script.onload = () => {
       try {
+        status.textContent = 'Complete the security verification above.';
         turnstileWidgetId = window.turnstile.render('#turnstileWidget', {
           sitekey: siteKey, action: 'ski-registration', theme: 'light', size: 'flexible',
           callback: token => {
