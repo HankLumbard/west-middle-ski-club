@@ -23,11 +23,13 @@ const DEFAULT_SETTINGS = [
   ['Adult Weekday Lift Ticket Price', 28, 'Discounted adult weekday/non-holiday lift ticket price.'],
   ['Adult Weekend/Holiday Lift Ticket Price', 33, 'Discounted adult weekend/holiday lift ticket price.'],
   ['Rental Price', 26, 'Discounted ski rental price.'],
-  ['Snowboard Rental Price', 30, 'Discounted snowboard rental price.'],
-  ['Tubing Included', true, 'Checked = tubing is included with each punch card.'],
-  ['Free Tubing Sessions', 3, 'Free two-hour tubing sessions included per card.'],
-  ['Tubing Session Hours', 2, 'Length of each free tubing session.'],
-  ['Tubing Value', 60, 'Dollar value of the included tubing sessions.'],
+  ['Snowboard Rental Price', 40, 'Snowboard rental price; regularly $40.'],
+  ['Tubing Price', 20, 'Discounted price per two-hour tubing session, paid separately.'],
+  ['Tubing Regular Price', 28, 'Regular price per tubing session.'],
+  ['Tubing Sessions', 3, 'Number of discounted tubing sessions available per card.'],
+  ['Tubing Session Hours', 2, 'Length of each tubing session.'],
+  ['Student Introductory Ski Lesson Price', 10, 'One introductory ski lesson per student card, paid separately.'],
+  ['Student Introductory Ski Lesson Regular Price', 40, 'Regular introductory ski lesson price.'],
   ['Closed Message', 'Registration is closed while final pricing and details are being confirmed.', 'Message shown on the website while registration is closed.']
 ];
 
@@ -342,15 +344,43 @@ function getSettings_() {
       }
     },
     rentalPrice: numberSetting_(map['Rental Price'], 26),
-    snowboardRentalPrice: numberSetting_(map['Snowboard Rental Price'], 26),
+    pricingVersion: 2,
+    snowboardRentalPrice: numberSetting_(map['Snowboard Rental Price'], 40),
     tubing: {
-      included: booleanSetting_(map['Tubing Included'], true),
-      sessions: numberSetting_(map['Free Tubing Sessions'], 3),
-      hours: numberSetting_(map['Tubing Session Hours'], 2),
-      value: numberSetting_(map['Tubing Value'], 60)
+      price: numberSetting_(map['Tubing Price'], 20),
+      regularPrice: numberSetting_(map['Tubing Regular Price'], 28),
+      sessions: numberSetting_(map['Tubing Sessions'], 3),
+      hours: numberSetting_(map['Tubing Session Hours'], 2)
+    },
+    studentLesson: {
+      price: numberSetting_(map['Student Introductory Ski Lesson Price'], 10),
+      regularPrice: numberSetting_(map['Student Introductory Ski Lesson Regular Price'], 40)
     },
     closedMessage: textSetting_(map['Closed Message'], 'Registration is closed while final pricing and details are being confirmed.')
   };
+}
+
+// Run once when applying the October 2026 cardholder-pricing correction.
+// Only the listed benefit settings change; registration status and card prices are preserved.
+function updateCardholderPricing() {
+  const sheet = ensureSettingsSheet_();
+  const updates = {
+    'Snowboard Rental Price': 40, 'Tubing Price': 20, 'Tubing Regular Price': 28,
+    'Tubing Sessions': 3, 'Tubing Session Hours': 2,
+    'Student Introductory Ski Lesson Price': 10,
+    'Student Introductory Ski Lesson Regular Price': 40
+  };
+  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 3).getValues();
+  rows.forEach((row, index) => {
+    const key = String(row[0] || '').trim();
+    if (Object.prototype.hasOwnProperty.call(updates, key)) {
+      sheet.getRange(index + 2, 2).setValue(updates[key]);
+    }
+    if (['Tubing Included', 'Free Tubing Sessions', 'Tubing Value'].includes(key)) {
+      sheet.getRange(index + 2, 3).setValue('Legacy setting; no longer used. Use Tubing Price and Tubing Sessions.');
+    }
+  });
+  console.log('Cardholder pricing updated. Registration status and punch-card prices were preserved.');
 }
 
 function ensureSettingsSheet_() {
@@ -395,7 +425,8 @@ function ensureSettingsSheet_() {
   const priceKeys = new Set([
     'Student Punch Card Price', 'Adult Punch Card Price', 'Student Lift Ticket Price',
     'Adult Weekday Lift Ticket Price', 'Adult Weekend/Holiday Lift Ticket Price',
-    'Rental Price', 'Snowboard Rental Price', 'Tubing Value'
+    'Rental Price', 'Snowboard Rental Price', 'Tubing Price', 'Tubing Regular Price',
+    'Student Introductory Ski Lesson Price', 'Student Introductory Ski Lesson Regular Price'
   ]);
   allSettings.forEach((row, index) => {
     if (priceKeys.has(String(row[0] || '').trim())) {

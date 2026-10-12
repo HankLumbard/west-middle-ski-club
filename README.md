@@ -12,6 +12,12 @@ Static signup website plus a Google Sheets Apps Script backend for punch-card re
 
 The website is configured with the deployed `/exec` URL in `config.js`. If that URL changes, update `config.js` and publish the changed file to GitHub Pages. The public site displays the prices from Settings, including separate ski and snowboard rental rates, and uses the card prices to calculate the Venmo total. The Apps Script validates totals against the current Sheet prices when it saves a registration.
 
+## October 2026 cardholder pricing
+
+Tubing offers three two-hour sessions per card at **$20 per session**, regularly $28. Student cards also offer **one introductory ski lesson for $10**, regularly $40. Snowboard rental is **$40**, regularly $40. These are informational benefits paid separately; registration collects punch-card payments only.
+
+Replace the bound Apps Script with the current `apps-script/Code.gs`, save, run **updateCardholderPricing** once, then update the existing deployment to a new version. This adds the tubing and lesson price settings and sets snowboard rental to $40, preserving registration status, punch-card prices, and registrations. Old Tubing Included, Free Tubing Sessions, and Tubing Value rows remain labeled as unused. Until the new script is deployed, the frontend displays the confirmed benefit prices instead of the old free-tubing/$30 snowboard information.
+
 ## Student punch-card goal
 
 To add the **Student Goal** tab to the registration sheet, update the Apps Script with the current `apps-script/Code.gs`, save it, then run `initializeStudentGoalTracker` once from the Apps Script editor and approve permissions if prompted. The tab starts with a goal of 40, which can be changed in the highlighted goal cell. It counts rows marked `Student` in the **Punch Cards** tab and shows cards sold, percent complete, and cards remaining. Adult cards are excluded. The tracker recalculates as registrations are added.

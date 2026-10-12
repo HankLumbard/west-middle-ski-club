@@ -21,8 +21,9 @@
       adultWeekend: { price: 33, note: 'Weekends and holidays' }
     },
     rentalPrice: 26,
-    snowboardRentalPrice: 30,
-    tubing: { included: true, sessions: 3, hours: 2, value: 60 }
+    snowboardRentalPrice: 40,
+    tubing: { price: 20, regularPrice: 28, sessions: 3, hours: 2 },
+    studentLesson: { price: 10, regularPrice: 40 }
   };
   let settings = defaultSettings;
   let settingsLoaded = false;
@@ -90,6 +91,7 @@
     const cards = raw.cardPrices || {};
     const lifts = raw.liftTickets || {};
     const tubing = raw.tubing || {};
+    const lesson = raw.studentLesson || {};
     const studentLift = lifts.student || {};
     const adultWeekday = lifts.adultWeekday || {};
     const adultWeekend = lifts.adultWeekend || {};
@@ -119,12 +121,19 @@
         }
       },
       rentalPrice: numberOr(raw.rentalPrice, defaultSettings.rentalPrice),
-      snowboardRentalPrice: numberOr(raw.snowboardRentalPrice, defaultSettings.snowboardRentalPrice),
+      // Older deployments still return the superseded $30 rental and free-tubing settings.
+      snowboardRentalPrice: raw.pricingVersion === 2
+        ? numberOr(raw.snowboardRentalPrice, defaultSettings.snowboardRentalPrice)
+        : defaultSettings.snowboardRentalPrice,
       tubing: {
-        included: tubing.included !== false,
+        price: numberOr(tubing.price, defaultSettings.tubing.price),
+        regularPrice: numberOr(tubing.regularPrice, defaultSettings.tubing.regularPrice),
         sessions: numberOr(tubing.sessions, defaultSettings.tubing.sessions),
-        hours: numberOr(tubing.hours, defaultSettings.tubing.hours),
-        value: numberOr(tubing.value, defaultSettings.tubing.value)
+        hours: numberOr(tubing.hours, defaultSettings.tubing.hours)
+      },
+      studentLesson: {
+        price: numberOr(lesson.price, defaultSettings.studentLesson.price),
+        regularPrice: numberOr(lesson.regularPrice, defaultSettings.studentLesson.regularPrice)
       }
     };
   }
@@ -158,18 +167,17 @@
     document.querySelector('#adultWeekendLiftPrice').textContent = formatMoney(settings.liftTickets.adultWeekend.price);
     document.querySelector('#rentalPrice').textContent = formatMoney(settings.rentalPrice);
     document.querySelector('#snowboardRentalPrice').textContent = formatMoney(settings.snowboardRentalPrice);
-    document.querySelector('#tubingStatus').textContent = settings.tubing.included ? 'Included' : 'Not included';
-    if (settings.tubing.included) {
-      document.querySelector('#tubingDetails').textContent =
-        settings.tubing.sessions + ' free ' + settings.tubing.hours + '-hour sessions per card · ' +
-        formatMoney(settings.tubing.value) + ' value';
-      document.querySelector('#discountFoot').textContent =
-        'The punch card includes the tubing sessions. Lift tickets and rentals are paid for separately at the rates shown.';
-    } else {
-      document.querySelector('#tubingDetails').textContent = 'Tubing is paid for separately.';
-      document.querySelector('#discountFoot').textContent =
-        'Lift tickets, rentals, and tubing are paid for separately at the rates shown.';
-    }
+    document.querySelector('#tubingPrice').textContent = formatMoney(settings.tubing.price);
+    document.querySelector('#tubingDetails').textContent =
+      settings.tubing.sessions + ' ' + settings.tubing.hours + '-hour sessions per card · ' +
+      formatMoney(settings.tubing.price) + ' per session';
+    document.querySelector('#tubingRegularPrice').textContent =
+      'Regularly ' + formatMoney(settings.tubing.regularPrice) + ' per session';
+    document.querySelector('#studentLessonPrice').textContent = formatMoney(settings.studentLesson.price);
+    document.querySelector('#studentLessonRegularPrice').textContent =
+      'Regularly ' + formatMoney(settings.studentLesson.regularPrice);
+    document.querySelector('#discountFoot').textContent =
+      'Lift tickets, rentals, tubing, and lessons are paid for separately at the rates shown.';
   }
 
   function selectedCardTypes() {
