@@ -5,6 +5,7 @@
  */
 const SHEET_NAME = 'Punch Cards';
 const SETTINGS_SHEET_NAME = 'Settings';
+const RECEIPT_HEADERS = ['Receipt Status', 'Receipt Sent At', 'Receipt Error'];
 const HEADERS = [
   'Submitted At', 'Registration ID', 'Guardian First Name', 'Guardian Last Name',
   'Email', 'Cell', 'Street Address', 'City', 'State', 'ZIP',
@@ -143,16 +144,18 @@ function doPost(e) {
         const g = payload.guardian;
         const now = new Date();
         const total = money_(payload.people.reduce((sum, person) => sum + settings.cardPrices[person.type], 0));
+        const receiptsEnabled = PropertiesService.getScriptProperties().getProperty('REGISTRATION_EMAILS_ENABLED') === 'true';
         // The guardian's card is first when purchased; otherwise the first child's
         // row carries the guardian contact information and registration total.
         const rows = payload.people.map((person, index) => [
           now, code, safe_(g.firstName), safe_(g.lastName), safe_(g.email), safe_(g.cell),
           safe_(g.street), safe_(g.city), safe_(g.state), safe_(g.zip),
           safe_(person.firstName), safe_(person.lastName), safe_(person.type),
-          settings.cardPrices[person.type], index === 0 ? total : '', false, '', id
+          settings.cardPrices[person.type], index === 0 ? total : '', false, '', id,
+          ...(receiptsEnabled ? [index === 0 ? 'Pending' : '', '', ''] : [])
         ]);
         const nextRow = sheet.getLastRow() + 1;
-        sheet.getRange(nextRow, 1, rows.length, HEADERS.length).setValues(rows);
+        sheet.getRange(nextRow, 1, rows.length, rows[0].length).setValues(rows);
         sheet.getRange(nextRow, 16, rows.length, 1).insertCheckboxes();
         SpreadsheetApp.flush();
         result = { kind: 'west-ski-registration', nonce: nonce, registrationId: id, displayId: code, ok: true };
@@ -167,6 +170,121 @@ function doPost(e) {
   const encoded = Utilities.base64Encode(Utilities.newBlob(JSON.stringify(result), 'application/json').getBytes());
   return HtmlService.createHtmlOutput('<!doctype html><html><body><script>window.top.postMessage(JSON.parse(atob("' + encoded + '")),"*");<\/script></body></html>')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+// Run this first to preview one sample receipt in your own Inbox and Sent mail.
+// This does not register anyone or enable automatic emails.
+function sendTestReceiptToMyself() {
+  const email = Session.getEffectiveUser().getEmail();
+  if (!email) throw new Error('Run this function from your own Apps Script editor.');
+  sendRegistrationReceipt_({
+    email: email, firstName: 'Henry', code: 'TEST', total: 135,
+    people: [
+      { firstName: 'Henry', lastName: 'Lumbard', type: 'Adult', price: 45 },
+      { firstName: 'Elli', lastName: 'Lumbard', type: 'Student', price: 45 },
+      { firstName: 'Jacob', lastName: 'Lumbard', type: 'Student', price: 45 }
+    ]
+  }, true);
+}
+
+// Run only after reviewing the test. Only new registrations are queued.
+function enableRegistrationEmails() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  if (!spreadsheet) throw new Error('Run this from the Apps Script attached to your registration sheet.');
+  const sheet = getSheet_();
+  const headers = sheet.getRange(1, 19, 1, RECEIPT_HEADERS.length).getValues()[0];
+  headers.forEach((header, index) => {
+    if (header && header !== RECEIPT_HEADERS[index]) throw new Error('Columns S–U are already in use.');
+  });
+  sheet.getRange(1, 19, 1, RECEIPT_HEADERS.length).setValues([RECEIPT_HEADERS])
+    .setFontWeight('bold').setBackground('#0000a6').setFontColor('#ffffff');
+  sheet.getRange('T2:T').setNumberFormat('m/d/yyyy h:mm AM/PM');
+  if (!ScriptApp.getProjectTriggers().some(trigger => trigger.getHandlerFunction() === 'sendPendingRegistrationReceipts')) {
+    ScriptApp.newTrigger('sendPendingRegistrationReceipts').timeBased().everyMinutes(1).create();
+  }
+  PropertiesService.getScriptProperties().setProperties({
+    REGISTRATION_EMAIL_SPREADSHEET_ID: spreadsheet.getId(),
+    REGISTRATION_EMAILS_ENABLED: 'true'
+  });
+}
+
+function disableRegistrationEmails() {
+  PropertiesService.getScriptProperties().setProperty('REGISTRATION_EMAILS_ENABLED', 'false');
+  ScriptApp.getProjectTriggers().forEach(trigger => {
+    if (trigger.getHandlerFunction() === 'sendPendingRegistrationReceipts') ScriptApp.deleteTrigger(trigger);
+  });
+}
+
+// Email is sent by a separate trigger, keeping registration saving fast.
+function sendPendingRegistrationReceipts() {
+  const properties = PropertiesService.getScriptProperties();
+  if (properties.getProperty('REGISTRATION_EMAILS_ENABLED') !== 'true') return;
+  const sheet = SpreadsheetApp.openById(properties.getProperty('REGISTRATION_EMAIL_SPREADSHEET_ID')).getSheetByName(SHEET_NAME);
+  if (!sheet || sheet.getLastRow() < 2) return;
+  const jobs = [];
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(1000)) return;
+  try {
+    const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 21).getValues();
+    const groups = new Map();
+    rows.forEach(row => {
+      if (!row[17]) return;
+      if (!groups.has(row[17])) groups.set(row[17], []);
+      groups.get(row[17]).push(row);
+    });
+    rows.forEach((row, index) => {
+      if (row[18] !== 'Pending' || jobs.length >= 10) return;
+      const people = groups.get(row[17]);
+      if (!people) return;
+      jobs.push({ row: index + 2, receipt: {
+        email: String(row[4]), firstName: String(row[2]), code: String(row[1]),
+        total: money_(people.reduce((sum, person) => sum + Number(person[13]), 0)),
+        people: people.map(person => ({firstName: person[10], lastName: person[11], type: person[12], price: Number(person[13])}))
+      }});
+      // Do not resend automatically if execution stops after Gmail accepts it.
+      sheet.getRange(index + 2, 19).setValue('Sending');
+    });
+    SpreadsheetApp.flush();
+  } finally { lock.releaseLock(); }
+  jobs.forEach(job => {
+    try {
+      sendRegistrationReceipt_(job.receipt, false);
+      sheet.getRange(job.row, 19, 1, 3).setValues([['Sent', new Date(), '']]);
+    } catch (err) {
+      sheet.getRange(job.row, 19, 1, 3).setValues([['Review needed', '', safe_(String(err.message || err).slice(0, 250))]]);
+    }
+  });
+}
+
+function sendRegistrationReceipt_(receipt, test) {
+  if (!/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(receipt.email)) throw new Error('The guardian email must be one valid email address.');
+  const formatMoney = value => '$' + money_(value).toFixed(2);
+  const note = 'WMS Ski Club ' + receipt.code;
+  const url = 'https://venmo.com/u/Henry-Lumbard-1?txn=pay&amount=' + money_(receipt.total).toFixed(2) + '&note=' + encodeURIComponent(note);
+  const lines = [
+    ...(test ? ['TEST RECEIPT — Sample only. No registration was created and no payment is due.', ''] : []),
+    'Hi ' + receipt.firstName + ',', '',
+    'Thanks for registering for the West Middle School Ski Club! Your punch card registration has been recorded.', '',
+    'Registration ID: ' + receipt.code, '', 'Punch cards:',
+    ...receipt.people.map(person => '• ' + person.firstName + ' ' + person.lastName + ' — ' + person.type + ' — ' + formatMoney(person.price)), '',
+    'Total due: ' + formatMoney(receipt.total), 'Payment status: Awaiting payment', '',
+    'To pay, use the Venmo link below for @Henry-Lumbard-1. Please include “' + note + '” in your payment note so I can match your payment to your registration.', '',
+    'Pay with Venmo: ' + url, '',
+    'If you’ve already paid, thank you! This email confirms your registration; payments are marked paid separately after I confirm receipt.', '',
+    'If you don’t use Venmo, reply to this email to arrange another way to pay. You can also reply with any questions or corrections.', '',
+    'See you on the slopes!', '', 'Henry Lumbard', 'West Middle School Ski Club'
+  ];
+  const htmlBody = '<div style="font-family:Arial,Helvetica,sans-serif;line-height:1.6;color:#17243b;max-width:620px">' +
+    lines.map(line => line.startsWith('Pay with Venmo: ')
+      ? '<a href="' + escapeReceiptHtml_(url) + '" style="display:inline-block;background:#0000a6;color:white;padding:10px 18px;border-radius:6px;text-decoration:none">Pay with Venmo</a>'
+      : escapeReceiptHtml_(line)).join('<br>') + '</div>';
+  GmailApp.sendEmail(receipt.email,
+    (test ? '[TEST] ' : '') + 'WMS Ski Club Registration Confirmation — ' + receipt.code,
+    lines.join('\n'), {htmlBody: htmlBody, name: 'Henry Lumbard · WMS Ski Club'});
+}
+
+function escapeReceiptHtml_(value) {
+  return String(value).replace(/[&<>"']/g, character => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[character]));
 }
 
 function getSettings_() {

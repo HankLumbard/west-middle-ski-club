@@ -20,6 +20,19 @@ To add the **Student Goal** tab to the registration sheet, update the Apps Scrip
 
 The first registration creates the **Punch Cards** tab and its columns. There is one row per student or adult cardholder. A guardian is included as an adult only when they select that they need a card; other cardholders are added automatically. **Registration Total** appears only on the first row of each registration (the guardian's card row when purchased, otherwise the first cardholder row with the guardian's contact information); remaining rows are blank in that column so it can be summed without double-counting. `Paid` starts unchecked; check the box for each cardholder after confirming the Venmo payment. A shared four-character Registration ID groups a family purchase. The hidden Submission Key keeps retries safe. Do not overwrite the header row.
 
+## Registration receipt emails
+
+Receipts use Gmail and appear in the sending account's Sent mail. They use the approved wording, actual cardholder names and purchase prices, registration ID, total due, and Venmo payment link. Only the guardian receives a receipt; there is no organizer copy.
+
+1. Replace the bound Apps Script `Code.gs` with the current `apps-script/Code.gs` and save.
+2. Run **enableRegistrationEmails** once and authorize access. This adds receipt tracking columns S–U and installs a one-minute email trigger. It does not email old registrations.
+3. Update the existing Web app deployment: **Deploy → Manage deployments → Edit → New version → Deploy**.
+4. Submit a registration through the site with your own email address to test the complete flow. Check Inbox and Sent for the receipt.
+
+Alternatively, **sendTestReceiptToMyself** sends a clearly labeled sample receipt to the Google account running the script, without registering anyone or enabling automatic emails.
+
+New registrations queue one receipt on the first row of the purchase. A separate trigger sends it, typically within a few minutes, without delaying signup. Retries of the form do not queue another receipt. Receipt Status shows Pending, Sending, Sent, or Review needed. Errors leave the registration recorded. For Review needed or a stuck Sending status, check Sent mail before changing the status back to Pending to retry. Run **disableRegistrationEmails** to pause receipt sending and stop queuing new emails.
+
 ## Payment flow
 
 The form sends a registration to the script, waits for a positive acknowledgment, then shows the total and Venmo link for `@Henry-Lumbard-1`. The payment note includes the four-character code. Families must verify the recipient, amount, and note in Venmo. The link attempts to prefill the amount and note; Venmo's app/browser behavior can vary. Payments are not detected automatically; mark `Paid` in the sheet after confirming receipt.
