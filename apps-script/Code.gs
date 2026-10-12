@@ -276,7 +276,7 @@ function sendRegistrationReceipt_(receipt, test) {
   if (!/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(receipt.email)) throw new Error('The guardian email must be one valid email address.');
   const formatMoney = value => '$' + money_(value).toFixed(2);
   const note = 'WMS Ski Club ' + receipt.code;
-  const url = 'https://venmo.com/u/Henry-Lumbard-1?txn=pay&amount=' + money_(receipt.total).toFixed(2) + '&note=' + encodeURIComponent(note);
+  const url = 'https://venmo.com/Henry-Lumbard-1?txn=pay&recipients=Henry-Lumbard-1&amount=' + money_(receipt.total).toFixed(2) + '&note=' + encodeURIComponent(note);
   const lines = [
     ...(test ? ['TEST RECEIPT — Sample only. No registration was created and no payment is due.', ''] : []),
     'Hi ' + receipt.firstName + ',', '',

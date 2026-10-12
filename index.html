@@ -27,7 +27,7 @@
   <meta name="twitter:image:alt" content="Portage West Pioneers school logo">
   <link rel="stylesheet" href="styles-registration-settings.css?v=20261012-turnstile">
   <script src="config.js" defer></script>
-  <script src="script.js?v=20261012-two-lessons" defer></script>
+  <script src="script.js?v=20261012-venmo-payment" defer></script>
 </head>
 <body>
   <header class="site-header">
@@ -105,7 +105,9 @@
         <p id="successSummary"></p>
         <div class="receipt"><span>Registration ID</span><strong id="receiptId"></strong><span>Amount due</span><strong id="receiptTotal"></strong><span>Venmo note</span><strong id="receiptNote"></strong></div>
         <button id="copyNote" class="copy-button" type="button">Copy Venmo note</button>
+        <button id="copyAmount" class="copy-button" type="button">Copy amount</button>
         <a id="venmoLink" class="submit-button payment-link" href="https://venmo.com/u/Henry-Lumbard-1" target="_blank" rel="noopener noreferrer">Pay with Venmo <span aria-hidden="true">↗</span></a>
+        <p><a id="venmoWebLink" href="https://account.venmo.com/pay" target="_blank" rel="noopener noreferrer" hidden>Use the Venmo website instead</a></p>
         <p class="payment-note">Pay <strong>@Henry-Lumbard-1</strong>. Confirm the recipient, amount, and note in Venmo before sending. If the amount or note is blank, enter the values shown above. Your registration shows unpaid until the organizer marks it paid.</p>
       </section>
     </div>

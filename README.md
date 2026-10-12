@@ -41,7 +41,7 @@ New registrations queue one receipt on the first row of the purchase. A separate
 
 ## Payment flow
 
-The form sends a registration to the script, waits for a positive acknowledgment, then shows the total and Venmo link for `@Henry-Lumbard-1`. The payment note includes the four-character code. Families must verify the recipient, amount, and note in Venmo. The link attempts to prefill the amount and note; Venmo's app/browser behavior can vary. Payments are not detected automatically; mark `Paid` in the sheet after confirming receipt.
+The form sends a registration to the script, waits for a positive acknowledgment, then shows the total and Venmo link for `@Henry-Lumbard-1`. The payment note includes the four-character code. Families must verify the recipient, amount, and note in Venmo. On mobile, the button uses a direct `venmo://paycharge` app link with the recipient, amount, and note. On desktop, it opens `https://account.venmo.com/pay` with the same parameters. Mobile users also have an explicit website fallback if the app is unavailable. Both note and amount can be copied. Web prefill remains best-effort because Venmo may ignore URL parameters or discard them during sign-in; a successful end-to-end app/web prefill has not been verified. Email receipts use an HTTPS username payment link with the same payment parameters. Payments are not detected automatically; mark `Paid` in the sheet after confirming receipt.
 
 If a request times out, retrying reuses the same internal submission key. The script checks that key before writing rows, so a delayed response does not create a second purchase. A new visit starts a new registration. Families should contact the organizer before paying if the site cannot confirm the save.
 

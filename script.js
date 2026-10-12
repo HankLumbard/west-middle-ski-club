@@ -410,7 +410,12 @@
   function venmoUrl(payload, displayId) {
     const note = 'West Middle Ski Club ' + displayId;
     const recipient = encodeURIComponent(cfg.venmoUsername || 'Henry-Lumbard-1');
-    return 'https://venmo.com/u/' + recipient + '?txn=pay&amount=' + payload.total.toFixed(2) + '&note=' + encodeURIComponent(note);
+    const query = 'txn=pay&recipients=' + recipient + '&amount=' +
+      payload.total.toFixed(2) + '&note=' + encodeURIComponent(note);
+    return {
+      app: 'venmo://paycharge?' + query,
+      web: 'https://account.venmo.com/pay?' + query
+    };
   }
 
   function showSuccess(payload, confirmation) {
@@ -425,7 +430,16 @@
     document.querySelector('#receiptId').textContent = displayId;
     document.querySelector('#receiptTotal').textContent = formatMoney(payload.total);
     document.querySelector('#receiptNote').textContent = 'West Middle Ski Club ' + displayId;
-    document.querySelector('#venmoLink').href = venmoUrl(payload, displayId);
+    const links = venmoUrl(payload, displayId);
+    const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const primaryLink = document.querySelector('#venmoLink');
+    primaryLink.href = mobile ? links.app : links.web;
+    primaryLink.target = mobile ? '_self' : '_blank';
+    primaryLink.firstChild.textContent = mobile ? 'Pay in Venmo app ' : 'Pay on Venmo website ';
+    const webLink = document.querySelector('#venmoWebLink');
+    webLink.href = links.web;
+    webLink.hidden = !mobile;
     success.hidden = false;
     if (window.matchMedia('(max-width: 580px)').matches) {
       success.focus({ preventScroll: true });
@@ -490,6 +504,17 @@
       button.textContent = 'Note copied';
     } catch {
       button.textContent = 'Select the note above to copy';
+    }
+  });
+
+  document.querySelector('#copyAmount').addEventListener('click', async event => {
+    const button = event.currentTarget;
+    const amount = document.querySelector('#receiptTotal').textContent.replace(/[$,]/g, '');
+    try {
+      await navigator.clipboard.writeText(amount);
+      button.textContent = 'Amount copied';
+    } catch {
+      button.textContent = 'Select the amount above to copy';
     }
   });
 
