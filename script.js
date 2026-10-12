@@ -12,7 +12,7 @@
   const scriptUrl = String(cfg.scriptUrl || '').trim();
   const validEndpoint = /^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(scriptUrl);
   const defaultSettings = {
-    registrationOpen: false,
+    registrationOpen: true,
     closedMessage: 'Registration is closed while final pricing and details are being confirmed.',
     cardPrices: { Student: 45, Adult: 45 },
     liftTickets: {
@@ -25,8 +25,7 @@
     tubing: { price: 20, regularPrice: 28, sessions: 3, hours: 2 },
     studentLesson: { price: 10, regularPrice: 40 }
   };
-  let settings = defaultSettings;
-  let settingsLoaded = false;
+  const settings = defaultSettings;
   let nextPerson = 0;
   let pending = null;
   let turnstileToken = '';
@@ -34,7 +33,7 @@
   let submitting = false;
 
   function updateSubmitAvailability() {
-    submitButton.disabled = !validEndpoint || !settingsLoaded || !settings.registrationOpen || !turnstileToken || submitting;
+    submitButton.disabled = !validEndpoint || !turnstileToken || submitting;
   }
 
   function initializeTurnstile(siteKey) {
@@ -78,64 +77,8 @@
     document.head.append(script);
   }
 
-  function numberOr(value, fallback) {
-    const number = Number(value);
-    return Number.isFinite(number) && number >= 0 ? number : fallback;
-  }
-
   function formatMoney(value) {
     return '$' + Number(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-  }
-
-  function normalizeSettings(raw) {
-    const cards = raw.cardPrices || {};
-    const lifts = raw.liftTickets || {};
-    const tubing = raw.tubing || {};
-    const lesson = raw.studentLesson || {};
-    const studentLift = lifts.student || {};
-    const adultWeekday = lifts.adultWeekday || {};
-    const adultWeekend = lifts.adultWeekend || {};
-    return {
-      registrationOpen: raw.registrationOpen === true,
-      closedMessage: typeof raw.closedMessage === 'string' && raw.closedMessage.trim()
-        ? raw.closedMessage.trim()
-        : defaultSettings.closedMessage,
-      cardPrices: {
-        Student: numberOr(cards.Student, defaultSettings.cardPrices.Student),
-        Adult: numberOr(cards.Adult, defaultSettings.cardPrices.Adult)
-      },
-      liftTickets: {
-        student: {
-          price: numberOr(studentLift.price, defaultSettings.liftTickets.student.price),
-          note: typeof studentLift.note === 'string' && studentLift.note.trim()
-            ? studentLift.note.trim()
-            : defaultSettings.liftTickets.student.note
-        },
-        adultWeekday: {
-          price: numberOr(adultWeekday.price, defaultSettings.liftTickets.adultWeekday.price),
-          note: defaultSettings.liftTickets.adultWeekday.note
-        },
-        adultWeekend: {
-          price: numberOr(adultWeekend.price, defaultSettings.liftTickets.adultWeekend.price),
-          note: defaultSettings.liftTickets.adultWeekend.note
-        }
-      },
-      rentalPrice: numberOr(raw.rentalPrice, defaultSettings.rentalPrice),
-      // Older deployments still return the superseded $30 rental and free-tubing settings.
-      snowboardRentalPrice: raw.pricingVersion === 2
-        ? numberOr(raw.snowboardRentalPrice, defaultSettings.snowboardRentalPrice)
-        : defaultSettings.snowboardRentalPrice,
-      tubing: {
-        price: numberOr(tubing.price, defaultSettings.tubing.price),
-        regularPrice: numberOr(tubing.regularPrice, defaultSettings.tubing.regularPrice),
-        sessions: numberOr(tubing.sessions, defaultSettings.tubing.sessions),
-        hours: numberOr(tubing.hours, defaultSettings.tubing.hours)
-      },
-      studentLesson: {
-        price: numberOr(lesson.price, defaultSettings.studentLesson.price),
-        regularPrice: numberOr(lesson.regularPrice, defaultSettings.studentLesson.regularPrice)
-      }
-    };
   }
 
   function setRegistrationStatus(isOpen, message) {
@@ -236,49 +179,6 @@
   function clearError() {
     error.hidden = true;
     error.textContent = '';
-  }
-
-  function fetchSettings(attempt = 0) {
-    if (!validEndpoint) {
-      setup.hidden = false;
-      setup.textContent = 'The registration settings are not connected. Signups remain closed.';
-      setRegistrationStatus(false, defaultSettings.closedMessage);
-      return;
-    }
-
-    const callbackName = 'skiSettings_' + crypto.randomUUID().replaceAll('-', '');
-    const settingsScript = document.createElement('script');
-    let timer;
-    let finished = false;
-
-    function finish(response) {
-      if (finished) return;
-      finished = true;
-      clearTimeout(timer);
-      delete window[callbackName];
-      settingsScript.remove();
-      if (response && response.ok === true && response.settings && typeof response.settings === 'object') {
-        settings = normalizeSettings(response.settings);
-        settingsLoaded = true;
-        setup.hidden = true;
-        updatePricingDisplay();
-        updateTotal();
-        setRegistrationStatus(settings.registrationOpen, settings.closedMessage);
-        if (settings.registrationOpen) initializeTurnstile(String(response.settings.turnstileSiteKey || ''));
-      } else if (attempt < 1) {
-        fetchSettings(attempt + 1);
-      } else {
-        setup.hidden = false;
-        setup.textContent = 'Update the Apps Script to load the Settings tab. Signups remain closed until then.';
-        setRegistrationStatus(false, 'Registration is closed until the Google Sheet settings are available.');
-      }
-    }
-
-    window[callbackName] = finish;
-    settingsScript.onerror = () => finish(null);
-    timer = setTimeout(() => finish(null), 30000);
-    settingsScript.src = scriptUrl + '?action=settings&callback=' + callbackName + '&t=' + Date.now();
-    document.head.append(settingsScript);
   }
 
   document.querySelector('#addPerson').addEventListener('click', addPerson);
@@ -455,7 +355,7 @@
   form.addEventListener('submit', async event => {
     event.preventDefault();
     clearError();
-    if (!validEndpoint || !settingsLoaded || !settings.registrationOpen) return;
+    if (!validEndpoint) return;
     if (submitting) return;
     if (!turnstileToken) {
       showError('Complete the security verification before registering.');
@@ -520,5 +420,10 @@
 
   updatePricingDisplay();
   updateTotal();
-  fetchSettings();
+  setRegistrationStatus(true);
+  if (!validEndpoint) {
+    setup.hidden = false;
+    setup.textContent = 'Online registration is not connected. Please contact the organizer.';
+  }
+  initializeTurnstile(String(cfg.turnstileSiteKey || ''));
 })();

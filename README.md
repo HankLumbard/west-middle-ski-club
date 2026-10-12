@@ -1,22 +1,19 @@
 # West Middle School Ski Club signup
 
-Static signup website plus a Google Sheets Apps Script backend for punch-card registrations. The website reads prices and registration status from the Sheet's **Settings** tab. Student and adult punch-card prices can differ; lift tickets, ski rental, snowboard rental, and tubing details can be edited there. Registration starts closed, and the server also rejects new registrations while closed. Existing registrations can still be safely confirmed if a response was delayed.
+Static signup website plus a Google Sheets Apps Script backend for punch-card registrations. Registration stays open and the website no longer requests registration status or settings from Google Sheets. Confirmed prices are maintained in `script.js`; server-side card prices ($45 each) are maintained in `getRegistrationSettings_()` in `apps-script/Code.gs`. The old Settings tab is no longer used for page loads or submissions.
 
 ## Set up the Google Sheet
 
-1. Open the private Google Sheet used for registrations, then choose **Extensions → Apps Script**.
-2. Replace the contents of `Code.gs` with [`apps-script/Code.gs`](apps-script/Code.gs) and save.
-3. In the function list, choose `initializeSettings` and click **Run**. Approve the requested Google permissions. This creates the **Settings** tab; its **Registration Open** checkbox starts unchecked.
-4. Update the Apps Script deployment: **Deploy → Manage deployments → Edit → New version → Deploy**. Keep the existing Web app URL and settings (**Execute as: Me**, **Who has access: Anyone**).
-5. Visit the website. It remains closed until you check **Registration Open** in the Settings tab. Change values in the **Value** column as needed, then have families reload the page to see the latest settings. Uncheck the box at any time to close registration.
+1. Open the private registration sheet and choose **Extensions → Apps Script**.
+2. Replace `Code.gs` with `apps-script/Code.gs` and save.
+3. Update the existing deployment: **Deploy → Manage deployments → Edit → New version → Deploy**, keeping **Execute as: Me** and **Who has access: Anyone**.
+4. Visit the website. Registration appears immediately; Turnstile verification is still required before submission.
 
-The website is configured with the deployed `/exec` URL in `config.js`. If that URL changes, update `config.js` and publish the changed file to GitHub Pages. The public site displays the prices from Settings, including separate ski and snowboard rental rates, and uses the card prices to calculate the Venmo total. The Apps Script validates totals against the current Sheet prices when it saves a registration.
+The deployed `/exec` URL and public Turnstile site key are in `config.js`. Private verification keys remain in Apps Script properties. Google Sheets collects registrations; its registration-open checkbox no longer controls the form or submission acceptance after redeployment.
 
 ## October 2026 cardholder pricing
 
 Tubing offers three two-hour sessions per card at **$20 per session**, regularly $28. Student cards also offer **two introductory ski lessons per card for $10 each**, regularly $40 each. Snowboard rental is **$40**, regularly $40. These are informational benefits paid separately; registration collects punch-card payments only.
-
-Replace the bound Apps Script with the current `apps-script/Code.gs`, save, run **updateCardholderPricing** once, then update the existing deployment to a new version. This adds the tubing and lesson price settings and sets snowboard rental to $40, preserving registration status, punch-card prices, and registrations. Old Tubing Included, Free Tubing Sessions, and Tubing Value rows remain labeled as unused. Until the new script is deployed, the frontend displays the confirmed benefit prices instead of the old free-tubing/$30 snowboard information.
 
 ## Student punch-card goal
 
@@ -56,7 +53,7 @@ Create a Cloudflare Turnstile widget in **Managed** mode named **West Middle Ski
 
 In the ski Apps Script project's **Project Settings → Script properties**, add:
 
-- `TURNSTILE_SITE_KEY`: the public site key from Cloudflare. The settings endpoint exposes this key to the form.
+- `TURNSTILE_SITE_KEY`: the public site key from Cloudflare. The same public key is configured directly in `config.js`; the form does not call the settings endpoint.
 - `TURNSTILE_SECRET_KEY`: the private key from Cloudflare. Keep it only in Script properties; never put it in GitHub, a public Sheet, a screenshot, or chat.
 
 Set the keys before deploying the protected Apps Script and publishing the updated form. Update the **existing** Apps Script deployment to a new version so the `/exec` URL stays the same. Apps Script may request permission to call the external verification service through `UrlFetchApp`. Do not run sheet initialization or change existing registrations as part of this update.

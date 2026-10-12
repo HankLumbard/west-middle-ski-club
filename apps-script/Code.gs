@@ -115,9 +115,14 @@ function initializeStudentGoalTracker() {
   SpreadsheetApp.flush();
 }
 
+// Registration configuration is maintained in code; no Settings-tab reads.
+function getRegistrationSettings_() {
+  return { registrationOpen: true, cardPrices: { Student: 45, Adult: 45 } };
+}
+
 function getPublicSettings_() {
   return {
-    ...getSettings_(),
+    ...getRegistrationSettings_(),
     turnstileSiteKey: PropertiesService.getScriptProperties().getProperty('TURNSTILE_SITE_KEY') || ''
   };
 }
@@ -143,8 +148,7 @@ function doPost(e) {
       if (prior) {
         result = { kind: 'west-ski-registration', nonce: nonce, registrationId: id, displayId: prior.displayId, ok: true, duplicate: true };
       } else {
-        const settings = getSettings_();
-        if (!settings.registrationOpen) throw new Error(settings.closedMessage || 'Registration is currently closed.');
+        const settings = getRegistrationSettings_();
         validate_(payload, settings);
         verifyTurnstile_(payload.turnstileToken);
         enforceRegistrationLimits_(existingSheet, payload.guardian.email, new Date());
