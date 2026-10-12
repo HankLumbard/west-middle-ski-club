@@ -292,6 +292,7 @@ function sendRegistrationReceipt_(receipt, test) {
     'Pay with Venmo: ' + url, '',
     'If you’ve already paid, thank you! This email confirms your registration; payments are marked paid separately after I confirm receipt.', '',
     'If you don’t use Venmo, reply to this email to arrange another way to pay. You can also reply with any questions or corrections.', '',
+    'Once I receive the punch cards, I’ll send them home with your WMS child. If you don’t have a child at WMS, please reply to this email to arrange how to get your cards.', '',
     'See you on the slopes!', '', 'Henry Lumbard', 'West Middle School Ski Club'
   ];
   const htmlBody = '<div style="font-family:Arial,Helvetica,sans-serif;line-height:1.6;color:#17243b;max-width:620px">' +
