@@ -6,6 +6,8 @@
 const SHEET_NAME = 'Punch Cards';
 const SETTINGS_SHEET_NAME = 'Settings';
 const RECEIPT_HEADERS = ['Receipt Status', 'Receipt Sent At', 'Receipt Error'];
+const ABUSE_LIMITS = { registrationsPerHour: 200, registrationsPerDay: 500,
+  emailRegistrationsPerHour: 3, emailRegistrationsPerDay: 6, receiptsPerDay: 90 };
 const HEADERS = [
   'Submitted At', 'Registration ID', 'Guardian First Name', 'Guardian Last Name',
   'Email', 'Cell', 'Street Address', 'City', 'State', 'ZIP',
@@ -112,7 +114,10 @@ function initializeStudentGoalTracker() {
 }
 
 function getPublicSettings_() {
-  return getSettings_();
+  return {
+    ...getSettings_(),
+    turnstileSiteKey: PropertiesService.getScriptProperties().getProperty('TURNSTILE_SITE_KEY') || ''
+  };
 }
 
 function doPost(e) {
@@ -121,6 +126,7 @@ function doPost(e) {
   let result;
   try {
     const rawPayload = String(e && e.parameter && e.parameter.payload || '');
+    if (rawPayload.length > 40000) throw new Error('Registration is too large.');
     const payload = JSON.parse(rawPayload);
     id = String(payload.registrationId || '');
     if (!/^[a-f0-9-]{36}$/i.test(id)) throw new Error('Invalid registration ID.');
@@ -138,6 +144,8 @@ function doPost(e) {
         const settings = getSettings_();
         if (!settings.registrationOpen) throw new Error(settings.closedMessage || 'Registration is currently closed.');
         validate_(payload, settings);
+        verifyTurnstile_(payload.turnstileToken);
+        enforceRegistrationLimits_(existingSheet, payload.guardian.email, new Date());
 
         const sheet = getSheet_();
         const code = newCode_(sheet);
@@ -225,6 +233,9 @@ function sendPendingRegistrationReceipts() {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(1000)) return;
   try {
+    const day = new Date().toISOString().slice(0, 10);
+    let receiptCount = properties.getProperty('RECEIPT_BUDGET_DAY') === day
+      ? Number(properties.getProperty('RECEIPT_BUDGET_COUNT')) || 0 : 0;
     const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 21).getValues();
     const groups = new Map();
     rows.forEach(row => {
@@ -233,9 +244,12 @@ function sendPendingRegistrationReceipts() {
       groups.get(row[17]).push(row);
     });
     rows.forEach((row, index) => {
-      if (row[18] !== 'Pending' || jobs.length >= 10) return;
+      if (row[18] !== 'Pending' || jobs.length >= 10 || receiptCount >= ABUSE_LIMITS.receiptsPerDay) return;
       const people = groups.get(row[17]);
       if (!people) return;
+      // Reserve each attempt under the lock, including failed sends.
+      receiptCount++;
+      properties.setProperties({ RECEIPT_BUDGET_DAY: day, RECEIPT_BUDGET_COUNT: String(receiptCount) });
       jobs.push({ row: index + 2, receipt: {
         email: String(row[4]), firstName: String(row[2]), code: String(row[1]),
         total: money_(people.reduce((sum, person) => sum + Number(person[13]), 0)),
@@ -449,7 +463,7 @@ function validate_(p, settings) {
   if (p.people.length < 1 || p.people.length > 30) throw new Error('Choose between 1 and 30 punch cards.');
   const g = p.guardian;
   ['firstName', 'lastName', 'email', 'cell', 'street', 'city', 'state', 'zip'].forEach(key => required_(g[key], 160));
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(g.email))) throw new Error('Enter a valid email address.');
+  if (!/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(String(g.email))) throw new Error('Enter one valid email address.');
   p.people.forEach(person => {
     required_(person.firstName, 80); required_(person.lastName, 80);
     if (!['Student', 'Adult'].includes(person.type)) throw new Error('Invalid cardholder type.');
@@ -493,4 +507,61 @@ function safe_(value) {
   const text = String(value).trim();
   // Prevent entered names or addresses being interpreted as spreadsheet formulas.
   return /^[=+\-@\t\r]/.test(text) ? "'" + text : text;
+}
+
+function verifyTurnstile_(token) {
+  if (typeof token !== 'string' || !token || token.length > 2048) {
+    throw new Error('Complete the security verification before registering.');
+  }
+  const secret = PropertiesService.getScriptProperties().getProperty('TURNSTILE_SECRET_KEY');
+  if (!secret) throw new Error('Security verification is unavailable. Please contact the organizer.');
+  let verification;
+  try {
+    const response = UrlFetchApp.fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'post', payload: { secret: secret, response: token }, muteHttpExceptions: true
+    });
+    if (response.getResponseCode() !== 200) throw new Error('Verification service unavailable.');
+    verification = JSON.parse(response.getContentText());
+  } catch (err) {
+    throw new Error('Security verification is temporarily unavailable. Please try again.');
+  }
+  if (verification.success !== true || verification.hostname !== 'hanklumbard.github.io' ||
+      verification.action !== 'ski-registration') {
+    throw new Error('Security verification expired or failed. Please verify again.');
+  }
+}
+
+// Apps Script does not supply a trustworthy visitor IP. These limits use
+// saved registration IDs and normalized email addresses, under the write lock.
+function enforceRegistrationLimits_(sheet, email, now) {
+  if (!sheet || sheet.getLastRow() < 2) return;
+  const rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 18).getValues();
+  const counts = countRecentRegistrations_(rows, email, now);
+  if (counts.hour >= ABUSE_LIMITS.registrationsPerHour || counts.day >= ABUSE_LIMITS.registrationsPerDay) {
+    throw new Error('Registration is receiving too many submissions. Please try again later or contact the organizer.');
+  }
+  if (counts.emailHour >= ABUSE_LIMITS.emailRegistrationsPerHour || counts.emailDay >= ABUSE_LIMITS.emailRegistrationsPerDay) {
+    throw new Error('Too many registrations for this email address. Please try again later or contact the organizer.');
+  }
+}
+
+function countRecentRegistrations_(rows, email, now) {
+  const counts = { hour: 0, day: 0, emailHour: 0, emailDay: 0 };
+  const seen = new Set();
+  const normalizedEmail = String(email).trim().toLowerCase();
+  rows.forEach(row => {
+    const id = String(row[17] || row[1] || '');
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    const age = now.getTime() - new Date(row[0]).getTime();
+    if (!Number.isFinite(age) || age < 0 || age >= 86400000) return;
+    const sameEmail = String(row[4]).trim().toLowerCase() === normalizedEmail;
+    counts.day++;
+    if (sameEmail) counts.emailDay++;
+    if (age < 3600000) {
+      counts.hour++;
+      if (sameEmail) counts.emailHour++;
+    }
+  });
+  return counts;
 }

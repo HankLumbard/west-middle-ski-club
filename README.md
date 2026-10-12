@@ -43,3 +43,30 @@ If a request times out, retrying reuses the same internal submission key. The sc
 
 - `index.html`, `styles-registration-settings.css`, `script.js`, `config.js`, and `assets/`: complete frontend
 - `apps-script/Code.gs`: settings management, server-side validation, and Google Sheet writing
+
+## Turnstile and abuse protection
+
+Create a Cloudflare Turnstile widget in **Managed** mode named **West Middle Ski Club**, allowing only `hanklumbard.github.io`. Pre-clearance is not needed. The widget verifies on the signup page; Apps Script validates the single-use token, hostname, and `ski-registration` action before saving a new entry. Existing submission-ID retries remain idempotent and do not queue another receipt.
+
+In the ski Apps Script project's **Project Settings → Script properties**, add:
+
+- `TURNSTILE_SITE_KEY`: the public site key from Cloudflare. The settings endpoint exposes this key to the form.
+- `TURNSTILE_SECRET_KEY`: the private key from Cloudflare. Keep it only in Script properties; never put it in GitHub, a public Sheet, a screenshot, or chat.
+
+Set the keys before deploying the protected Apps Script and publishing the updated form. Update the **existing** Apps Script deployment to a new version so the `/exec` URL stays the same. Apps Script may request permission to call the external verification service through `UrlFetchApp`. Do not run sheet initialization or change existing registrations as part of this update.
+
+Security verification fails closed when a token is missing, invalid, expired, reused, from another hostname/action, or the verification service cannot be reached. Visitors see a message and can retry without losing form fields. Missing configuration prevents new registrations rather than silently bypassing protection.
+
+Limits are defined in `ABUSE_LIMITS` in `apps-script/Code.gs`:
+
+| Limit | Default |
+|---|---:|
+| New registrations across the site in a rolling hour | 200 |
+| New registrations across the site in rolling 24 hours | 500 |
+| New registrations per normalized email in a rolling hour | 3 |
+| New registrations per normalized email in rolling 24 hours | 6 |
+| Automatic receipt attempts per UTC calendar day | 90 |
+
+Registration counts use unique registration IDs, so purchasing multiple cards counts as one registration. Existing-ID retries do not consume another registration slot. Receipts above the daily budget remain **Pending** and resume after the UTC day resets. The budget reserves attempts under the script lock before sending, including failed sends. Manually run sample receipts are outside that automatic budget. These application limits reduce junk writes and receipt abuse; they do not stop all requests from reaching Apps Script or guarantee protection against traffic floods.
+
+Run local security checks with `node --test scripts/*.test.cjs`. These use mocked Sheet/email/verification services and never send actual registrations or emails. Production verification should include widget display, rejected missing/invalid tokens, and a real registration test only when the organizer wants one.

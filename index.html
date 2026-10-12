@@ -9,7 +9,7 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles-registration-settings.css?v=20261012-club-welcome">
   <script src="config.js" defer></script>
-  <script src="script.js?v=20260924-settings-retry" defer></script>
+  <script src="script.js?v=20261012-turnstile" defer></script>
 </head>
 <body>
   <header class="site-header">
@@ -71,6 +71,10 @@
         <section class="checkout" aria-labelledby="totalHeading">
           <div><p class="checkout-label" id="totalHeading">Your punch cards</p><p id="cardCount" class="checkout-caption">Select who needs a card</p></div>
           <strong id="total" class="total">$0</strong>
+          <div class="security-verification">
+            <div id="turnstileWidget"></div>
+            <p id="verificationStatus" class="fine-print" role="status">Loading security verification…</p>
+          </div>
           <button id="submitButton" class="submit-button" type="submit">Register & continue to payment <span aria-hidden="true">→</span></button>
           <p class="fine-print">Registration doesn’t charge you. Your payment is completed separately in Venmo.</p>
         </section>

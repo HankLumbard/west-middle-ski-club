@@ -28,6 +28,53 @@
   let settingsLoaded = false;
   let nextPerson = 0;
   let pending = null;
+  let turnstileToken = '';
+  let turnstileWidgetId = null;
+  let submitting = false;
+
+  function updateSubmitAvailability() {
+    submitButton.disabled = !validEndpoint || !settingsLoaded || !settings.registrationOpen || !turnstileToken || submitting;
+  }
+
+  function initializeTurnstile(siteKey) {
+    const status = document.querySelector('#verificationStatus');
+    if (!siteKey) {
+      status.textContent = 'Security verification is unavailable. Please try again later.';
+      updateSubmitAvailability();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    script.async = true;
+    script.onload = () => {
+      try {
+        turnstileWidgetId = window.turnstile.render('#turnstileWidget', {
+          sitekey: siteKey, action: 'ski-registration', theme: 'light', size: 'flexible',
+          callback: token => {
+            turnstileToken = token;
+            status.textContent = 'Verification complete.';
+            updateSubmitAvailability();
+          },
+          'expired-callback': () => {
+            turnstileToken = '';
+            status.textContent = 'Verification expired. Please verify again.';
+            updateSubmitAvailability();
+          },
+          'error-callback': () => {
+            turnstileToken = '';
+            status.textContent = 'Verification could not load. Please reload the page or contact the organizer.';
+            updateSubmitAvailability();
+          }
+        });
+      } catch {
+        status.textContent = 'Verification could not load. Please reload the page.';
+      }
+    };
+    script.onerror = () => {
+      status.textContent = 'Verification could not load. Please reload the page or contact the organizer.';
+    };
+    document.head.append(script);
+  }
 
   function numberOr(value, fallback) {
     const number = Number(value);
@@ -88,7 +135,7 @@
     pricingPanel.hidden = !isOpen;
     document.querySelector('.header-price').hidden = !isOpen;
     closedNotice.hidden = isOpen;
-    submitButton.disabled = !validEndpoint || !isOpen;
+    updateSubmitAvailability();
     if (isOpen) {
       pageTitle.textContent = 'Get your punch cards.';
       pageIntro.textContent = 'Enter your contact information and choose who needs a card. You’ll pay by Venmo after the registration is recorded.';
@@ -208,6 +255,7 @@
         updatePricingDisplay();
         updateTotal();
         setRegistrationStatus(settings.registrationOpen, settings.closedMessage);
+        if (settings.registrationOpen) initializeTurnstile(String(response.settings.turnstileSiteKey || ''));
       } else if (attempt < 1) {
         fetchSettings(attempt + 1);
       } else {
@@ -385,6 +433,11 @@
     event.preventDefault();
     clearError();
     if (!validEndpoint || !settingsLoaded || !settings.registrationOpen) return;
+    if (submitting) return;
+    if (!turnstileToken) {
+      showError('Complete the security verification before registering.');
+      return;
+    }
     if (!pending) {
       if (!form.reportValidity()) return;
       if (!selectedCardTypes().length) {
@@ -393,13 +446,17 @@
       }
       pending = getValues();
     }
-    submitButton.disabled = true;
+    pending.turnstileToken = turnstileToken;
+    submitting = true;
+    updateSubmitAvailability();
     submitButton.firstChild.textContent = 'Saving registration… ';
     try {
       const confirmation = await postRegistration(pending);
       showSuccess(pending, confirmation);
       pending = null;
     } catch (err) {
+      turnstileToken = '';
+      if (turnstileWidgetId !== null && window.turnstile) window.turnstile.reset(turnstileWidgetId);
       if (err.confirmed) {
         pending = null;
         showError(err.message + ' Please correct the form and try again.');
@@ -409,8 +466,10 @@
           if (element !== submitButton) element.disabled = true;
         });
       }
-      submitButton.disabled = false;
       submitButton.firstChild.textContent = pending ? 'Retry registration ' : 'Register & continue to payment ';
+    } finally {
+      submitting = false;
+      updateSubmitAvailability();
     }
   });
 

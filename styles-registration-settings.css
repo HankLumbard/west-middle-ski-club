@@ -7,3 +7,5 @@
 .resort-logo-link{display:flex;align-items:center;justify-content:center;padding:0;min-height:0;margin:0 0 20px;transition:transform .15s ease,box-shadow .15s ease}.resort-logo-link:hover{transform:translateY(-2px);box-shadow:0 8px 20px #0000a626}.resort-logo-link img{display:block;width:100%;max-width:320px;height:auto;object-fit:contain}
 
 .notice-closed{background:#edf0ff;border:1px solid #bfc8ef;color:#0000a6}.card-prices{display:flex;gap:24px;margin-top:8px}.card-prices>div{font-weight:700;font-size:.84rem;letter-spacing:.02em}.card-prices strong{display:block;font-size:2rem;letter-spacing:-.05em;line-height:1.1}@media(max-width:580px){.card-prices{gap:18px}.card-prices strong{font-size:1.8rem}}
+
+.security-verification{grid-column:1/-1;min-width:0}.security-verification .fine-print{margin-top:8px}.security-verification #turnstileWidget{min-height:65px}
