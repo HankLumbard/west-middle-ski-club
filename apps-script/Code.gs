@@ -288,7 +288,7 @@ function sendRegistrationReceipt_(receipt, test) {
     'Thanks for registering for the West Middle School Ski Club! Your punch card registration has been recorded.', '',
     'Registration ID: ' + receipt.code, '', 'Punch cards:',
     ...receipt.people.map(person => '• ' + person.firstName + ' ' + person.lastName + ' — ' + person.type + ' — ' + formatMoney(person.price)), '',
-    'Total due: ' + formatMoney(receipt.total), 'Payment status: Awaiting payment', '',
+    'Total due: ' + formatMoney(receipt.total), '',
     'To pay, use the Venmo link below for @Henry-Lumbard-1. Please include “' + note + '” in your payment note so I can match your payment to your registration.', '',
     'Pay with Venmo: ' + url, '',
     'If you’ve already paid, thank you! This email confirms your registration; payments are marked paid separately after I confirm receipt.', '',
